@@ -25,19 +25,19 @@ def color():
 
     normal='\033[0;37m'             # cr[0]
     red_bold='\033[1;31m'           # cr[1]
-    green_back_bold='\033[1;37;43m' # cr[2]
+    yel_back_bold='\033[1;37;43m' # cr[2]
     green='\033[0;32m'              # cr[3]
 
-    color=[normal,red_bold,green_back_bold,green]
+    color=[normal,red_bold,yel_back_bold,green]
 
     return(color)
 
 def source():
 
     # file paths/sources for both computers
-    # C:\Users\marcu\Desktop\KSPworkshop\FLIGHTS\HM
-    # C:\Users\Marcus\Desktop\KSPplotted\FLIGHTS\HailMary
-    df=pd.read_csv(r'C:\Users\marcu\Desktop\KSPworkshop\FLIGHTS\HM\{}.csv'.format(csv)) # open flight telemetry csv
+    # C:\Users\marcu\Desktop\KSPworkshop\
+    # C:\Users\Marcus\Desktop\KSPplotted\
+    df=pd.read_csv(r'C:\Users\Marcus\Desktop\KSPplotted\kspGraph\FLIGHTS\HM\{}.csv'.format(csv)) # open flight telemetry csv
     
     col=df.columns.values # displays csv columns
     # print(f'{nl}{col}{nl}')
@@ -62,33 +62,46 @@ def stage():
     stg=pd.DataFrame({stgTitle:roc})    # create an isolated (df) for (roc)
     df=df.join(stg,how='right')         # join (roc) to original (df)
 
-    stgSept=(df[stgTitle])
+    stgSept=(df[stgTitle])              # define (df) (stg) (roc) column
     
     stgList=[]
-    for i in stgSept.iloc[1:]:
-        if(i!=0):
-            stgList.append(i)
+    for i in stgSept.iloc[1:]:          # ignoring the first, list all entries in (stg) (roc) column 
+        if(i!=0):                       # ignore all that equal 0
+            stgList.append(i)           # add every one that did not equal 0 to a list
+    
+    return(stgList,stgSept,df)          # cont. in (main engine cut off) and (fairing separation)
 
-    stgRow=df[stgSept.isin(stgList)][stgTitle]
+def acc_rate_of_change():
 
-    num=[]
-    for n in stgRow:
-        num.append(n)
+    df=source()
 
-    return(num,stgSept,df)
+    acc=(df.columns[7])             #& acceleration column
+    a_df=df[acc]                    #& a = acceleration series
+    time=(df.columns[0])            #& time column
+    TIME=df[time]                   #& t = time series
+
+
+    a_list=[]                               #! to find the point of throttle up we need to find the acceleration rate of change.
+    for a in a_df:                   
+        a_list.append(a)                    #? isolate (a) for whole (df) into a list
+    a_ser=pd.Series(a_list)                 #? place (a) in isolated series
+    a_roc=a_ser.pct_change()                #? find rate of change (roc) for (a)
+    roc_title='aRoC'
+    roc_df=pd.DataFrame({roc_title:a_roc})  #? create an isolated (df) for (roc)
+    df=df.join(roc_df,how='right')          #? join (roc) to original df
+
+    return(df)
 
 def max_q():
-
-    # a
 
     # finding the point of maximum dynamic pressure or Q. The first mile stone of flight. throttling to full before this point is wasting energy by working too hard.
     # we want a slow moderate push through the thickest atmosphere. after this point the atmosphere begins to thin and the rocket experinces less dynamic pressure.
 
-    cr=color()                      #& cr[0,1,2,3]
-    df=source()                     #& df = dataframe
+    cr=color()                      # cr[0,1,2,3]
+    df=source()                     # df = dataframe
 
-    col8=(df.columns[8])               #& Q column
-    Q=df[col8]                         #& Q = Dynamic Pressure
+    col8=(df.columns[8])            # Q column
+    Q=df[col8]                      # Q = Dynamic Pressure
 
     # finding point of max Q
 
@@ -124,23 +137,10 @@ def throttle_up():
     # finding point of throttle up during inital ascent. Occurs shortly after Max Q around 35 to 50 seconds into fligt.
     
     cr=color()                      #& cr[0,1,2,3]
-    df=source()                     #& df = dataframe
+    df=acc_rate_of_change()         #& df = dataframe
 
-    acc=(df.columns[7])             #& acceleration column
-    a_df=df[acc]                     #& a = acceleration series
     time=(df.columns[0])            #& time column
     TIME=df[time]                   #& t = time series
-
-    # finding acceleration rate of change (a_roc).
-
-    a_list=[]                               #! to find the point of throttle up we need to find the acceleration rate of change.
-    for a in a_df:                   
-        a_list.append(a)                    #? isolate (a) for whole (df) into a list
-    a_ser=pd.Series(a_list)                 #? place (a) in isolated series
-    a_roc=a_ser.pct_change()                #? find rate of change (roc) for (a)
-    roc_title='aRoC'
-    roc_df=pd.DataFrame({roc_title:a_roc})  #? create an isolated (df) for (roc)
-    df=df.join(roc_df,how='right')          #? join (roc) to original df
 
     # define rate of change column like acceleration and time.
 
@@ -189,13 +189,13 @@ def main_engine_cut_off():
     # these three events occur in a short time frame.
 
     cr=color()                      #& cr[0,1,2,3]
-    (num,stgSept,df)=stage()
+    (n,stgSept,df)=stage()
 
-    alt=df[stgSept==num[0]].iloc[0,2]      #& data[0] - Altitude 
-    rng=df[stgSept==num[0]].iloc[0,3]      #& data[1] - Down Range
-    spd=df[stgSept==num[0]].iloc[0,5]      #& data[2] - Speed
-    tim=df[stgSept==num[0]].iloc[0,0]      #& data[1] - Time
-    row=df[stgSept==num[0]].index[0]       #& data[5] - Row
+    alt=df[stgSept==n[0]].iloc[0,2]      #& data[0] - Altitude 
+    rng=df[stgSept==n[0]].iloc[0,3]      #& data[1] - Down Range
+    spd=df[stgSept==n[0]].iloc[0,5]      #& data[2] - Speed
+    tim=df[stgSept==n[0]].iloc[0,0]      #& data[1] - Time
+    row=df[stgSept==n[0]].index[0]       #& data[5] - Row
     
     # place values in a list
 
@@ -222,13 +222,13 @@ def fairing_separation():
     # these three events occur in a short time frame.
 
     cr=color()                      #& cr[0,1,2,3]
-    (num,stgSept,df)=stage()
+    (n,stgSept,df)=stage()
 
-    alt=df[stgSept==num[1]].iloc[0,2]      #& data[0] - Altitude 
-    rng=df[stgSept==num[1]].iloc[0,3]      #& data[1] - Down Range
-    spd=df[stgSept==num[1]].iloc[0,5]      #& data[2] - Speed
-    tim=df[stgSept==num[1]].iloc[0,0]      #& data[1] - Time
-    row=df[stgSept==num[1]].index[0]       #& data[5] - Row
+    alt=df[stgSept==n[1]].iloc[0,2]      #& data[0] - Altitude 
+    rng=df[stgSept==n[1]].iloc[0,3]      #& data[1] - Down Range
+    spd=df[stgSept==n[1]].iloc[0,5]      #& data[2] - Speed
+    tim=df[stgSept==n[1]].iloc[0,0]      #& data[1] - Time
+    row=df[stgSept==n[1]].index[0]       #& data[5] - Row
     
     # place values in a list
 
