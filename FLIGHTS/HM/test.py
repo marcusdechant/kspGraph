@@ -19,7 +19,7 @@ km=1000 # 1000m = 1km (use for output convertion)
 
 # user input 
 # csv=input(f'{nl}Flight Name?         : ')
-csv='CAT1'
+csv='CAT2'
 
 def color():
 
@@ -37,61 +37,38 @@ def source():
     # file paths/sources for both computers
     # C:\Users\marcu\Desktop\KSPworkshop\
     # C:\Users\Marcus\Desktop\KSPplotted\
-    df=pd.read_csv(r'C:\Users\Marcus\Desktop\KSPplotted\kspGraph\FLIGHTS\HM\{}.csv'.format(csv)) # open flight telemetry csv
-    
-    col=df.columns.values # displays csv columns
+    df=pd.read_csv(r'C:\Users\marcu\Desktop\KSPworkshop\kspGraph\FLIGHTS\HM\{}.csv'.format(csv)) 
+                                               
+    col=df.columns.values                   # displays csv column titles
     # print(f'{nl}{col}{nl}')
 
-    return(df)
+    col1=(df.columns[1])                    # col1 = stages column
+    stgSer=df[col1]                     
 
-def stage():
-
-    # identify stage separation points
-
-    df=source()
-
-    col1=(df.columns[1])                # col1 = stages column
-    ser=df[col1]                        # s1s = stage 1 separation = stages column series
-
-    stages=[]                           # using stage metrics we can find main stage seperation.
-    for stgs in ser:                    # 
-        stages.append(stgs)             # seperate (stg) for whole (df) into a list
-    stage=pd.Series(stages)             # place (stg) in isolated series
-    roc=stage.pct_change()              # find rate of change (roc) for (stg)
+    stages=[]                               # using stage metrics we can find stage seperation points.
+    for stgs in stgSer:                   
+        stages.append(stgs)                 # seperate (stg) for whole (df) into a list
+    stage=pd.Series(stages)                 # place (stg) in isolated series
+    stg_roc=stage.pct_change()              # find rate of change (roc) for (stg)
     stgTitle='stgRoC'
-    stg=pd.DataFrame({stgTitle:roc})    # create an isolated (df) for (roc)
-    df=df.join(stg,how='right')         # join (roc) to original (df)
+    stg=pd.DataFrame({stgTitle:stg_roc})    # create an isolated (df) for (roc)
+    df=df.join(stg,how='right')             # join (roc) to original (df)
 
-    stgSept=(df[stgTitle])              # define (df) (stg) (roc) column
+
+    col7=(df.columns[7])                    # acceleration column
+    accSer=df[col7]                         # a = acceleration series
     
-    stgList=[]
-    for i in stgSept.iloc[1:]:          # ignoring the first, list all entries in (stg) (roc) column 
-        if(i!=0):                       # ignore all that equal 0
-            stgList.append(i)           # add every one that did not equal 0 to a list
-    
-    return(stgList,stgSept,df)          # cont. in (main engine cut off) and (fairing separation)
-
-def acc_rate_of_change():
-
-    df=source()
-
-    acc=(df.columns[7])             #& acceleration column
-    a_df=df[acc]                    #& a = acceleration series
-    time=(df.columns[0])            #& time column
-    TIME=df[time]                   #& t = time series
-
-
-    a_list=[]                               #! to find the point of throttle up we need to find the acceleration rate of change.
-    for a in a_df:                   
-        a_list.append(a)                    #? isolate (a) for whole (df) into a list
-    a_ser=pd.Series(a_list)                 #? place (a) in isolated series
-    a_roc=a_ser.pct_change()                #? find rate of change (roc) for (a)
-    roc_title='aRoC'
-    roc_df=pd.DataFrame({roc_title:a_roc})  #? create an isolated (df) for (roc)
-    df=df.join(roc_df,how='right')          #? join (roc) to original df
+    accel=[]                               
+    for a in accSer:                   
+        accel.append(a)                     # isolate (a) for whole (df) into a list
+    acceleration=pd.Series(accel)           # place (a) in isolated series
+    a_roc=acceleration.pct_change()         # find rate of change (roc) for (a)
+    accTitle='aRoC'
+    acc=pd.DataFrame({accTitle:a_roc})      # create an isolated (df) for (roc)
+    df=df.join(acc,how='right')             # join (roc) to original df
 
     return(df)
-
+    
 def max_q():
 
     # finding the point of maximum dynamic pressure or Q. The first mile stone of flight. throttling to full before this point is wasting energy by working too hard.
@@ -137,21 +114,18 @@ def throttle_up():
     # finding point of throttle up during inital ascent. Occurs shortly after Max Q around 35 to 50 seconds into fligt.
     
     cr=color()                      #& cr[0,1,2,3]
-    df=acc_rate_of_change()         #& df = dataframe
+    df=source()                     #& df = dataframe
 
     time=(df.columns[0])            #& time column
     TIME=df[time]                   #& t = time series
-
-    # define rate of change column like acceleration and time.
-
-    rate=(df.columns[18])           #& rate of change columnn
+    rate=(df.columns[19])           #& acceleration rate of change columnn
     RATE=df[rate]                   #& roc = rate of change series
 
     # finding point of throttle up (p_th)
 
     go=[]                           #! a signifigant change in acceleration from 35 ot 50 seconds into flight indicates the point of throttle up.
     for a in TIME:                  
-        if(a<50)&(a>35):            #? time range for throttle up
+        if(a>35)&(a<50):            #? time range for throttle up
             go.append(a)            #? isolate time range into list (go)
     up=df[TIME.isin(go)][rate]      #? using the time range find the matching (roc) range
     th=max(up)                      #? the maximum value to the (roc) range during the time range is the point of throttle up
@@ -182,20 +156,22 @@ def throttle_up():
     
 def main_engine_cut_off():
 
-    # main engine cut off or (meco) is defined in 3 steps
-    # meco = main engine cut off
-    # stg1 = first stage seperation
-    # sses = second stage engine start
-    # these three events occur in a short time frame.
-
     cr=color()                      #& cr[0,1,2,3]
-    (n,stgSept,df)=stage()
+    df=source()
 
-    alt=df[stgSept==n[0]].iloc[0,2]      #& data[0] - Altitude 
-    rng=df[stgSept==n[0]].iloc[0,3]      #& data[1] - Down Range
-    spd=df[stgSept==n[0]].iloc[0,5]      #& data[2] - Speed
-    tim=df[stgSept==n[0]].iloc[0,0]      #& data[1] - Time
-    row=df[stgSept==n[0]].index[0]       #& data[5] - Row
+    col18=(df.columns[18])
+    x=(df[col18])                  # define (df) (stg) (roc) column
+        
+    n=[]
+    for i in x.iloc[1:]:           # ignoring the first, list all entries in (stg) (roc) column 
+        if(i!=0):                  # ignore all that equal 0
+            n.append(i)            # add every one that did not equal 0 to a list
+
+    alt=df[x==n[0]].iloc[0,2]      #& data[0] - Altitude 
+    rng=df[x==n[0]].iloc[0,3]      #& data[1] - Down Range
+    spd=df[x==n[0]].iloc[0,5]      #& data[2] - Speed
+    tim=df[x==n[0]].iloc[0,0]      #& data[1] - Time
+    row=df[x==n[0]].index[0]       #& data[5] - Row
     
     # place values in a list
 
@@ -203,32 +179,34 @@ def main_engine_cut_off():
 
     # print out of values for user
 
-    print('{}Main Engine Cut Off (MECO){}'.format(cr[1],cr[0]))
+    print('{}First Stage Separation{}'.format(cr[1],cr[0]))
     print(' - Alt:    {:.3f} km'.format(data[0]/km))
     print(' - Range:  {:.3f} km'.format(data[1]/km))
     print(' - Speed:  {:.3f} m/s'.format(data[2]))
     print(' - Time:   {:.2f} s'.format(data[3]))
     print(' - Row:    {:.0f}{}'.format(data[4],nl))
     print('Raw Data: {}{}'.format(data,nl))
-        
+  
     return(data)
 
 def fairing_separation():
 
-    # main engine cut off or (meco) is defined in 3 steps
-    # meco = main engine cut off
-    # stg1 = first stage seperation
-    # sses = second stage engine start
-    # these three events occur in a short time frame.
-
     cr=color()                      #& cr[0,1,2,3]
-    (n,stgSept,df)=stage()
+    df=source()
 
-    alt=df[stgSept==n[1]].iloc[0,2]      #& data[0] - Altitude 
-    rng=df[stgSept==n[1]].iloc[0,3]      #& data[1] - Down Range
-    spd=df[stgSept==n[1]].iloc[0,5]      #& data[2] - Speed
-    tim=df[stgSept==n[1]].iloc[0,0]      #& data[1] - Time
-    row=df[stgSept==n[1]].index[0]       #& data[5] - Row
+    col18=(df.columns[18])
+    x=(df[col18])                  # define (df) (stg) (roc) column
+        
+    n=[]
+    for i in x.iloc[1:]:           # ignoring the first, list all entries in (stg) (roc) column 
+        if(i!=0):                  # ignore all that equal 0
+            n.append(i)            # add every one that did not equal 0 to a list
+    
+    alt=df[x==n[1]].iloc[0,2]      #& data[0] - Altitude 
+    rng=df[x==n[1]].iloc[0,3]      #& data[1] - Down Range
+    spd=df[x==n[1]].iloc[0,5]      #& data[2] - Speed
+    tim=df[x==n[1]].iloc[0,0]      #& data[1] - Time
+    row=df[x==n[1]].index[0]       #& data[5] - Row
     
     # place values in a list
 
