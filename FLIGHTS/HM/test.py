@@ -37,7 +37,7 @@ def source():
     # file paths/sources for both computers
     # C:\Users\marcu\Desktop\KSPworkshop\
     # C:\Users\Marcus\Desktop\KSPplotted\
-    df=pd.read_csv(r'C:\Users\marcu\Desktop\KSPworkshop\kspGraph\FLIGHTS\HM\{}.csv'.format(csv)) 
+    df=pd.read_csv(r'HM\{}.csv'.format(csv)) 
                                                
     col=df.columns.values                   # displays csv column titles
     # print(f'{nl}{col}{nl}')
@@ -66,6 +66,8 @@ def source():
     accTitle='aRoC'
     acc=pd.DataFrame({accTitle:a_roc})      # create an isolated (df) for (roc)
     df=df.join(acc,how='right')             # join (roc) to original df
+
+    #print(df)
 
     return(df)
     
@@ -239,6 +241,8 @@ meco
 
 fair=fairing_separation()
 fair
+
+
 
 exit()
 
