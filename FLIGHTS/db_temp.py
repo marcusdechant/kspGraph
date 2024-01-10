@@ -1,4 +1,5 @@
 from ColorOut import CO
+from psqlConn import psql # conn=psql()
 import pandas as pd
 import numpy as np
 import psycopg2 as psy
@@ -16,17 +17,24 @@ def color():
 
     return(color)
 
-# data processing for ksp flights
+# data processing and database insertion
 
-nl='\n' # new line var
+nl='\n'
+km=1000
 
-# file=input('{}Flight Name?                                : '.format(nl)) # user specific flight name (name of telmu csv data)
-# bstc=input('Did the Launch Vehicle have Boosters?       : ')              # user defines if the launch vehicle had boosters
-# payc=input('Did the Launch Vehicle release a Payload?   : ')              # user defines if launch vehicle staged payload
-# fopt=input('Did the Launch Vehicle release a Payload?   : ')              # user defines if launch vehicle staged payload
-# lpad=input('Launch Complex Pad?                         : ')              # user defines what launch comlex and pad where used
+file='Cache_Alpha'                                                                    # faux input
+# file=input('{}Flight Name?                                     : '.format(nl))     # user specific flight name (name of telmu csv data)
+fn=file.split("_")
+lpad='KSC Pad 1'                                                                     # faux input
+# lpad=input('Launch Complex Pad?                              : ')                  # user defines what launch comlex and pad where used                                                                                            
+bstc='y'                                                                        # faux input
+# bstc=input('Did the Launch Vehicle have Boosters? (y/n)      : ')                  # user defines if the launch vehicle had boosters
+payc='n'                                                                        # faux input
+# payc=input('Did the Launch Vehicle release a Payload? (y/n)  : ')                  # user defines if launch vehicle staged payload
+fopt='n'                                                                        # faux input
+# fopt=input('Did the Launch Vehicle release a Payload? (y/n)  : ')                  # user defines if launch vehicle staged payload
 
-file='CacheAlpha' # test file
+raw=[]
 
 def source():
 
@@ -45,7 +53,11 @@ def source():
 
     return(col,df)
 
-def rates_of_change():
+def database():
+    conn=psql()
+    return(conn)
+
+def roc():
 
     (col,df)=source()                       # return columns and dataframe from source()
 
@@ -53,16 +65,16 @@ def rates_of_change():
     a=0                                     # columns iterative starting point
     b=0                                     # titles iterative starting point
     c=0
-    for i in col:                         # for loop through colummns
+    for i in col:                           # for loop through colummns
         if (i==col[1] or i==col[6] or i==col[7]):            # if i equals 1 (stages), 6 (mass), 7 acceleration
-            ser=df[col[a]]                 # based on the iteration find the equivalent column
+            ser=df[col[a]]                  # based on the iteration find the equivalent column
             num=[]                          # 
             for f in ser:                   # loop through each row in column
                 num.append(f)               # isolate metrics from each row into a list
-            ic=pd.Series(num)             # place isolated metrics into a series
-            roc=ic.pct_change()           # find the rate of change of the series    
+            ic=pd.Series(num)               # place isolated metrics into a series
+            roc=ic.pct_change()             # find the rate of change of the series    
             roc=roc.fillna(0)               # replace any (nan) as (0)
-            title=t1[b]                 # b will select the correct title from titles list
+            title=t1[b]                     # b will select the correct title from titles list
             idf=pd.DataFrame({title:roc})   # place the rate of change series into an isolated dataframe
             df=df.join(idf,how='right')     # join isolated dataframe to then original dataframe
             b+=1                            # titles iterative value
@@ -80,55 +92,116 @@ def rates_of_change():
 def flight_info():
 
     cr=color()
-    (col,df)=rates_of_change()              # use col and df from roc as it is updated
+    (col,df)=roc()
+    conn=database()
 
-    flight_time=df[col[0]].iloc[-1]         # total amount of time flight took in seconds
-    total_mass=df[col[6]].iloc[1]           # starting rocket mass
-    final_mass=df[col[6]].iloc[-1]          # final rocket mass
+    a=(-1)
+    b=1
+    c=0
+    d=[]
+    lst=[0,2,3,5,6,17]
+    for e in col:
+        for itm in lst:
+            if(c==itm):
+                if c==6:
+                    ic=col[itm]
+                    iv=df[ic].iloc[b]
+                    d.append(iv)
+                    fc=col[itm]
+                    fv=df[fc].iloc[a]
+                    d.append(fv)
+                else:
+                    f=col[itm]
+                    v=df[f].iloc[a]
+                    d.append(v)
+        c+=1
 
-    bstc='y'            # faux input
-    payc='n'            # faux input
-    fopt='n'            # faux input
-    lpad='KSC Pad 1'    # faux input
+    options=[bstc,payc,fopt]
+    opts=[]
+    for o in options:
+        if(o=='y'):
+            opt=True
+            opts.append(opt)
+        else:
+            opt=False
+            opts.append(opt)
 
-    hn=['FLIGHT','TTIME','iMASS','FMASS','BSTQ','PAYQ','FAIRQ','LPAD']
-    h=[file,flight_time,total_mass,final_mass,bstc,payc,fopt,lpad]
-
-    dfin={hn[0]:[h[0]],
-          hn[1]:[h[1]],
-          hn[2]:[h[2]],
-          hn[3]:[h[3]],
-          hn[4]:[h[4]],
-          hn[5]:[h[5]],
-          hn[6]:[h[6]]}                             # dataframe series for flight
+    flin={'name'    :[file],
+          'pad'     :[lpad],
+          'time'    :[d[0]],               # total amount of time flight took in seconds
+          'altitude':[d[1]],               # final altitude of flight in meters
+          'range'   :[d[2]],               # final down range postiton of rocket
+          'speed'   :[d[3]],               # final orbital speed of flight
+          'lv_mass' :[d[4]],               # launch vehicle mass
+          'pay_mass':[d[5]],               # payload mass
+          'delta_v' :[d[6]],
+          'bst_q'   :[opts[0]],
+          'pay_q'   :[opts[1]],
+          'fair_q'  :[opts[2]]}
     
-    fl=pd.DataFrame(dfin)                           # build dataframe for flight
-    fl.to_csv(r'faux_db\Flights.csv',index=False)   # add dataframe to flight csv (eventually postgres)
+    fl=pd.DataFrame(flin)                           # build dataframe for flight
     fol=fl.columns.values
+    data=[file,
+          lpad,
+          fl[fol[2]][0],
+          fl[fol[3]][0],
+          fl[fol[4]][0],
+          fl[fol[5]][0],
+          fl[fol[6]][0],
+          fl[fol[7]][0],
+          fl[fol[8]][0],
+          opts[0],
+          opts[1],
+          opts[2]]
+    
+    cur=conn.cursor()
+    
+    sch=['callisto','hailmary']
+    if(fn[0]=='Callisto' or fn[0]=='Cache'):
+        schema=(sch[0])
+    if(fn[0]=='HM' or fn[0]=='Hailmary'):
+        schema=(sch[1])
+    table='test2'
+    # table='flights'
+    schema_table=('{}.{}'.format(schema,table))
 
-    time=pd.to_timedelta(flight_time,'sec')
+    SQL=('''INSERT INTO {} VALUES ({})'''.format(schema_table,data))
+    # cur.execute(SQL)
+
+    time=pd.to_timedelta(data[2],'sec')
     mm=time.components.minutes
     ss=time.components.seconds
     ms=time.components.milliseconds
     time=('{}:{}.{}'.format(mm,ss,ms))
 
-    print('{}{}{} Launch Telemetry{}{}'.format(nl,cr[2],file,cr[0],nl))
-    print('{}Flight Info{}'.format(cr[1],cr[0]))
-    print(' - Flight Name:           {}'.format(file))
-    print(' - Flight Time:           {}'.format(time))
-    print(' - Flight Time (Raw):     {:.3f} s'.format(flight_time))
-    print(' - Launch Vehicle Mass:   {:.0f} t'.format(total_mass))
-    print(' - Payload Mass:          {:.2f} t'.format(final_mass))
-    print(' - Launch Complex/Pad:    {}{}'.format(lpad,nl))
-    print('Raw Data: {}{}'.format(h,nl))
+    flnm=('{} {}'.format(fn[0],fn[1]))
+
+    print('{}{} {} Launch Telemetry {}{}'.format(nl,cr[2],flnm,cr[0],nl))
+    print('{} Flight Information{}{}'.format(cr[1],cr[0],nl))
+    print('  - Flight Name:              {}'.format(flnm))
+    print('  - Launch Complex/Pad:       {}'.format(data[1]))
+    print('  - Flight Time:              {}'.format(time))
+    print('  - Flight Time (Raw):        {:.3f}  s'.format(data[2]))
+    print('  - Final Altitude:           {:.3f}   km'.format(data[3]/km))
+    print('  - Downrange:                {:.3f}  km'.format(data[4]/km))
+    print('  - Orbital Velocity:         {:.3f}  m/s'.format(data[5]))
+    print('  - Launch Vehicle Mass:      {:.3f}   t'.format(data[6]))
+    print('  - Payload Mass:             {:.3f}    t'.format(data[7]))
+    print('  - Launch Vehicle DeltaV:    {:.0f}      m/s{}'.format(data[8],nl))
+    
+    print('Raw Data: {}{}'.format(data,nl))
+
+    print('SQL Query: {}{}'.format(SQL,nl))
 
     # print('DataFrame{}{}{}'.format(nl,fl,nl))
 
-    return(col,df,fol,fl)
+    raw.append(data)
+
+    return(col,df,fol,fl,raw,conn,cur)
 
 def flight_data():
 
-    (col,df,fol,fl)=flight_info()
+    (col,df,fol,fl,raw,conn,cur)=flight_info()
     cr=color()
     
     fol4=fl[fol[4]]                               # booster option flight_info column 4
@@ -144,7 +217,7 @@ def flight_data():
         if(i!=0):                                 # stages in stage rate of change as non zero nunbers
             stgs.append(i)                        # add any non zero number to the list for comparison - stgs[a,b]
     
-    km=1000                                       # 1000m/1000 = 1km
+                                           # 1000m/1000 = 1km
 
     def maxq():
         
