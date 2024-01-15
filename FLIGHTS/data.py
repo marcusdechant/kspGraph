@@ -273,7 +273,7 @@ def flight_telemetry():
     
     schema_table=('.'.join((sch,test[3]))) # set schema name for query
     print(f' Creating Table: {cr[4]} [ksp.{schema_table}]{cr[0]}')
-
+    sl(t2)
     
     while(True):                                                                            # telemetry table creation
         try:
@@ -299,9 +299,11 @@ def flight_telemetry():
                 else:
                     print(' Incorrect Input...')                                            # neither yes or no
                     continue                                                                # continue while loop
-            continue                                                                        # if table exists, delete and loop            
+            continue
+    sl(t4)                                                                        # if table exists, delete and loop            
     print(f'{cr[3]} Complete!{cr[0]}{nl}')
-    print(' Populating table... ')
+    sl(t5)
+    print(' Populating Table... ')
     for (i,r) in df.iterrows():                                     # iterate through rows
         a=tuple(r.values)                                           # turn each row into a tuple
         SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')          # sql command
@@ -359,44 +361,59 @@ def flight_info():
     schema_table=('.'.join((sch,test[4])))         #set schema name for query)
 
     time=pd.to_timedelta(data[2],'sec')                     # translating raw time (seconds) into clock time for readability
-    mm=time.components.minutes                           # split minutes off
-    ss=time.components.seconds                           # spilt seconds off
-    ms=time.components.milliseconds                    # split milliseconds off
-    time=(f'{mm:02d}:{ss:02d}.{ms:03d}')                      # reform
+    mm=time.components.minutes
+    ss=time.components.seconds
+    ms=time.components.milliseconds 
+    time=(f'{mm:02d}:{ss:02d}.{ms:03d}')
 
-    print(f' Database: [ksp.{schema_table}]')
-    print(f' Flight Information{nl}')
-    print(f'{cr[1]}  - Flight Name:              {inc[0][1]} {cr[0]}')
-    print(       f'  - Launch Complex/Pad:       {inc[1][0]}')
-    print(f'{cr[6]}  - Flight Time:              {time} {cr[0]}')
-    print(       f'  - Flight Time (Raw):        {data[2]:.3f} s')
-    print(f'{cr[7]}  - Final Altitude:           {data[3]/km:.3f} km {cr[0]}')
-    print(       f'  - Downrange:                {data[4]/km:.3f} km')
-    print(       f'  - Orbital Velocity:         {data[5]/km:.4f} km/s')    
-    print(f'{cr[3]}  - Launch Vehicle Mass:      {data[6]:.3f} t {cr[0]}')
-    print(       f'  - Payload Mass:             {data[7]:.3f} t')
-    print(       f'  - Launch Vehicle DeltaV:    {data[8]:.0f} m/s {nl}')
     
-    SQL=(f'''INSERT INTO {schema_table} VALUES %s ON CONFLICT DO NOTHING;''')          # sql command
+    print(f' Flight Information')
+    sl(t2)
+    print(f'{cr[1]}  - Flight Name:              {inc[2][1]} {cr[0]}')
+    sl(t1)
+    print(       f'  - Launch Complex/Pad:       {inc[3][0]}')
+    sl(t1)
+    print(f'{cr[3]}  - Flight Time:              {time} {cr[0]}')
+    sl(t1)
+    print(       f'  - Flight Time (Raw):        {data[2]:.3f} s')
+    sl(t1)
+    print(f'{cr[4]}  - Final Altitude:           {data[3]/km:.3f} km {cr[0]}')
+    sl(t1)
+    print(       f'  - Downrange:                {data[4]/km:.3f} km')
+    sl(t1)
+    print(       f'  - Orbital Velocity:         {data[5]/km:.4f} km/s')    
+    sl(t1)
+    print(       f'  - Launch Vehicle Mass:      {data[6]:.3f} t')
+    sl(t1)
+    print(f'{cr[2]}  - Payload Mass:             {data[7]:.3f} t{cr[0]}')
+    sl(t1)
+    print(       f'  - Launch Vehicle DeltaV:    {data[8]:.0f} m/s{nl}')
+    sl(t2)
+    print(f' Writing to Table: {cr[4]}[ksp.{schema_table}]{cr[0]}')
+
+    SQL=(f'''INSERT INTO {schema_table} VALUES %s ON CONFLICT DO NOTHING;''')
     cur.execute(SQL,(put,))
+
+    sl(t3)
+    print(f'{cr[3]} Complete!{cr[0]}{nl}')
+    sl(t3)
 
     raw.append(data)
 
-    exit()
-        
-    return(col,df,fol,fl,sch,inc,cur)
+    return(col,df,fol,fl,inc,sch,cur)
 
 def flight_data():
 
-    (col,df,fol,fl,sch,inc,cur)=flight_info()
-    cr=inc[3]
-    test=inc[4]
-    stg=df[col[18]]
-
-    stage=[]                                                                        # stages roc column refinded
-    for i in stg:                                                                # non zero number list                
-        if(i!=0):                                                                 # remove zero values
-            stage.append(i)
+    (col,df,fol,fl,inc,sch,cur)=flight_info()
+    cr=inc[0]
+    test=inc[1]
+    col18=col[18]
+    stage=df[col18]
+    
+    stage_list=[]                                                                        # stages roc column refinded
+    for index in stage:                                                                # non zero number list                
+        if(index!=0):                                                                 # remove zero values
+            stage_list.append(index)
 
     mile_col=['milestone','special','altitude','range','speed','delta','time','row']
     mile_pos=[                      (0,2)     ,(0,3)  ,(0,5)  ,(0,17) ,(0,0) ,(0)  ]
@@ -408,7 +425,8 @@ def flight_data():
 
     schema_table=(f'.'.join((sch,test[3])))
 
-    print(f' Creating Table: {cr[7]} [ksp.{schema_table}] {cr[0]}')
+    print(f' Creating Table: {cr[4]} [ksp.{schema_table}] {cr[0]}')
+    sl(t2)
     while(True):                                                                            # telemetry table creation
         try:
             TBL=(f'''CREATE TABLE {schema_table} () INHERITS ({temp[0]});''')                                         # create table command
@@ -417,12 +435,10 @@ def flight_data():
         except(errors.lookup(errorcodes.DUPLICATE_TABLE)):                                  # if table already exists
             while(True):                                        
                 ovrw=input(f'{cr[1]} Table Exists. Overwrite? (y/n): {cr[0]} ')  # ask user if they wish to overwrite
-                ovry=(ovrw=='y')
-                ovrx=(ovrw=='n')
-                if(ovry)or(ovrx):
-                    if(ovry):                                                               # user wishes to proceed
+                if(ovrw=='y')or(ovrw=='n'):
+                    if(ovrw=='y'):                                                               # user wishes to proceed
                         print(' Overwriting...')
-                        sl(t[5])
+                        sl(t2)
                         DUP=(f'''ROLLBACK;
                                  DROP TABLE {schema_table};''')                            # drop table command
                         cur.execute(DUP)                                                    # execute sql command
@@ -433,15 +449,20 @@ def flight_data():
                 else:
                     print(' Incorrect Input...')                                            # neither yes or no
                     continue                                                                # continue while loop
-            continue                                                                        # if table exists, delete and loop            
-    print(f'{cr[6]} Complete!{cr[0]}{nl}')
-    print(f' Flight Milestones {nl}')
+            continue
+    sl(t4)                                                                        # if table exists, delete and loop            
+    print(f'{cr[3]} Complete!{cr[0]}{nl}')
+    sl(t3)
+    print(f' Flight Milestones')
+    sl(t1)
+    print(f' Writing to Table {cr[4]}[ksp.{schema_table}]{cr[0]}{nl}')
 
     war=[]
 
     def maxq():
-        
-        Q=df[col[8]]
+
+        col8=col[8]        
+        Q=df[col8]
         maxQ=max(Q)
         val=df[Q==maxQ]
 
@@ -462,18 +483,29 @@ def flight_data():
 
         data=tuple([mist,maxQ,alt,rng,spd,dtv,rwt,int(row)])
 
+        print(f'{cr[1]} Maximum Dynamic Pressure (MAXQ){cr[0]}')
+        sl(t1)
+        print(f'{cr[2]} - Dynamic Pressure (Q):    {data[1]:.3f} Pa{cr[0]}')
+        sl(t1)
+        print(f'{cr[4]} - Altitude:                {(data[2]/km):.3f} km{cr[0]}')
+        sl(t1)
+        print(       f' - Downrange:               {(data[3]/km):.3f} km')
+        sl(t1)
+        print(       f' - Velocity:                {data[4]:.3f} m')
+        sl(t1)
+        print(       f' - Delta V Used:            {data[5]:.3f} m/s')
+        sl(t1)
+        print(f'{cr[3]} - Raw Time:                {data[6]:.3f} s {cr[0]}')
+        sl(t1)
+        print(       f' - Flight Time:             {time}')
+        sl(t1)
+        print(f'{cr[5]} - Table Row:               {data[7]}{cr[0]}')
+
         SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')
         cur.execute(SQL,(data,))
-
-        print(f' Maximum Dynamic Pressure (MAXQ) {nl}')
-        print(f'{cr[3]} - Dynamic Pressure (Q):    {data[1]:.3f} Pa{cr[0]}')
-        print(f'{cr[6]} - Altitude:                {(data[2]/km):.3f} km{cr[0]}')
-        print(f' - Downrange:               {(data[3]/km):.3f} km')
-        print(f' - Velocity:                {data[4]:.3f} m')
-        print(f' - Delta V Used:            {data[5]:.3f} m/s')
-        print(f'{cr[3]} - Raw Time:                {data[6]:.3f} s {cr[0]}')
-        print(f'{cr[7]} - Flight Time:             {time}{cr[0]}')
-        print(f' - Table Row:               {data[7]}{nl}')
+        sl(t3)
+        print(f'{cr[3]} Complete!{cr[0]}{nl}')
+        sl(t3)
 
         raw.append(data)
         war.append(data)
@@ -512,14 +544,21 @@ def flight_data():
 
             data=tuple([mist,nan,alt,rng,spd,dtv,rwt,int(row)])
 
-            print(f' Throttle Up (THUP) {nl}')
-            print(f'{cr[6]} - Altitude:                {(data[2]/km):.3f} km{cr[0]}')
-            print(f' - Downrange:               {(data[3]/km):.3f} km')
-            print(f' - Velocity:                {data[4]:.3f} m')
-            print(f' - Delta V Used:            {data[5]:.3f} m/s')
-            print(f' - Raw Time:                {data[6]:.3f} s')
-            print(f'{cr[7]} - Flight Time:             {time}{cr[0]}')
-            print(f' - Table Row:               {data[7]}{nl}')
+            print(f'{cr[1]} Throttle Up (THUP){cr[0]}')
+            sl(t1)
+            print(f'{cr[4]} - Altitude:                {(data[2]/km):.3f} km{cr[0]}')
+            sl(t1)
+            print(       f' - Downrange:               {(data[3]/km):.3f} km')
+            sl(t1)
+            print(       f' - Velocity:                {data[4]:.3f} m')
+            sl(t1)
+            print(       f' - Delta V Used:            {data[5]:.3f} m/s')
+            sl(t1)
+            print(f'{cr[3]} - Raw Time:                {data[6]:.3f} s {cr[0]}')
+            sl(t1)
+            print(       f' - Flight Time:             {time}')
+            sl(t1)
+            print(f'{cr[5]} - Table Row:               {data[7]}{cr[0]}')
 
         except(KeyError):
             mile_nan[0]=mile[1]
@@ -528,6 +567,9 @@ def flight_data():
 
         SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')
         cur.execute(SQL,(data,))
+        sl(t3)
+        print(f'{cr[3]} Complete!{cr[0]}{nl}')
+        sl(t3)
         
         raw.append(data)
         war.append(data)
@@ -538,7 +580,7 @@ def flight_data():
     def beco():
 
         # boosers equipped
-        if(options[0]==True):
+        if(user_opt[0]==True):
 
             stg=stage[0]
             val=df[stgs==stg]
