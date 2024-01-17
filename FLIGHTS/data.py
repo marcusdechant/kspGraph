@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from time import sleep as sl
 from psycopg2 import errors, errorcodes
+from statistics import mode
 
 CO()
 
@@ -30,6 +31,7 @@ man=[np.NaN,np.inf] # non existent data manipulation
 temp=['templates.data','templates.telemetry'] # database template tables    temp[0,1]
 
 raw=[]
+war=[]
 
 def test_params():  # testing parameters
 
@@ -141,11 +143,11 @@ def user():
         opts.append('n')
         opts.append('n')
     else:
-        opts.append(input(f'{nl} Did the {lvn[0]} have boosters? (y/n)      : ')) 
+        opts.append(input(f'{nl} Did the {lvn[1]} have boosters? (y/n)      : ')) 
         # user defines if the launch vehicle had boosters
-        opts.append(input(f' Did the {lvn[0]} need a fairing? (y/n)     : ')) 
+        opts.append(input(f' Did the {lvn[1]} need a fairing? (y/n)     : ')) 
         # user defines if launch vehicle staged a payload
-        opts.append(input(f' Did the {lvn[0]} release a payload? (y/n)  : '))            
+        opts.append(input(f' Did the {lvn[1]} release a payload? (y/n)  : '))            
         # user defines if launch vehicle staged a fairing
     
     lst=[]
@@ -184,8 +186,8 @@ def source():
     col=df.columns.values
     
     # name[0-17]
-    name=['time','stages','altsealvl','downrange','surfvel','orbtvel','mass','acclr',
-          'q','aoa','aos','aod','alttrue','pitch','gls','dls','sls','deltav']
+    name=['time','stages','alt_sea_lvl','downrange','surf_vel','orbt_vel','mass','acclr',
+          'q','aoa','aos','aod','alt_true','pitch','gls','dls','sls','delta_v']
 
     a=0
     while(a<len(col)):
@@ -204,45 +206,34 @@ def processing():
 
     print(' Processing Data...')
 
-    # adding rate of change columns
-    lst=['sROC','mRoC','aRoC']
+    names=['v_roc','m_roc','a_roc']
     a=0
     b=0
-    for i in col:
-        if(i==col[1])or(i==col[6])or(i==col[7]):
-            ser=df[col[a]]
-            num=[]
-            for f in ser:
-                num.append(f)
-            ic=pd.Series(num)
-            roc=ic.pct_change()
-            title=lst[b]
-            idf=pd.DataFrame({title:roc})
-            df=df.join(idf,how='right')
-            b+=1
-        a+=1
-    sl(t4)
-    col=df.columns.values
-    
-    # column formatting
-    for h in col:
-        # time formatting
-        if(h==col[0]):
-            df[col[0]]=df[col[0]].round(3)
-        # stage formatting
-        if(h==col[18]):
-            df[col[18]]=df[col[18]].abs()
-    sl(t4)
     c=0
-
-    # replacing NaN (not a number) and inf (infinity) with 0 
-    for f in col:
-        if(f==lst[0] or f==lst[1] or f==lst[2]):
-            rate=df[col[c]]
-            rate.replace([man[1],(-man[1])],man[0],inplace=True)
-            rate.fillna(0,inplace=True)
-        c+=1
+    for i in col:
+        if(i==col[5])or(i==col[6])or(i==col[7]):
+            series=df[col[a]]
+            roc=series.diff()
+            title=names[b]
+            roc_iso=pd.DataFrame({title:roc})
+            roc_iso.replace([man[0],man[1],(-man[1])],0,inplace=True)
+            df=df.join(roc_iso,how='right')
+            if(i==col[6]):
+                m_roc=[]
+                for ii in roc:
+                    if ii!=0:
+                        m_roc.append(round(ii,6))
+                mass_roc_mode=mode(m_roc)
+            b+=1
+        if(i==col[0]):
+            df[col[0]]=df[col[0]].round(3)
+        a+=1
+    col=df.columns.values
     sl(t4)
+
+    for r in col:
+        if(r==col[19]):
+            df[col[19]]=df[col[19]].abs()
 
     # determine schmea from file naming conventions
     sch=['callisto','hailmary']
@@ -253,14 +244,14 @@ def processing():
 
     print(f'{cr[3]} Complete!{cr[0]}{nl}')
     sl(t2)
-
-    return(col,df,inc,schema)
+    important_values=[mass_roc_mode]
+    return(col,df,inc,schema,important_values)    
 
 def flight_telemetry():
 
     # data from telemetry csv to postgres database
     
-    (col,df,inc,sch)=processing()
+    (col,df,inc,sch,iv)=processing()
     cr=inc[0]
     test=inc[1]
     
@@ -312,15 +303,18 @@ def flight_telemetry():
 
     print(f'{cr[3]} Complete!{cr[0]}{nl}')
 
-    return(col,df,inc,sch,cur)
+    ps=[cur,conn]
+
+    return(col,df,inc,sch,ps,iv)
 
 def flight_info():
 
     # overall flight information
 
-    (col,df,inc,sch,cur)=flight_telemetry()
+    (col,df,inc,sch,ps,iv)=flight_telemetry()
     cr=inc[0]
     test=inc[1]
+    cur=ps[0]
 
 
     a=0
@@ -400,30 +394,60 @@ def flight_info():
 
     raw.append(data)
 
-    return(col,df,fol,fl,inc,sch,cur)
+    return(col,df,fol,fl,inc,sch,ps,iv)
 
 def flight_data():
 
-    (col,df,fol,fl,inc,sch,cur)=flight_info()
+    (col,df,fol,fl,inc,sch,ps,iv)=flight_info()
+    cur=ps[0]
+    conn=ps[1]
     cr=inc[0]
     test=inc[1]
+    nan=man[0]
+    user=inc[4]
+
+    col3=col[3]
+    alt=df[col3]
+
+    karman=[]
+    for i0 in alt:
+        if(69500<i0<70500):
+            karman.append(i0)
+
     col18=col[18]
-    stage=df[col18]
-    
-    stage_list=[]                                                                        # stages roc column refinded
-    for index in stage:                                                                # non zero number list                
-        if(index!=0):                                                                 # remove zero values
-            stage_list.append(index)
+    v_roc=df[col18]
+ 
+    col19=col[19]
+    m_roc=df[col19]
 
-    mile_col=['milestone','special','altitude','range','speed','delta','time','row']
-    mile_pos=[                      (0,2)     ,(0,3)  ,(0,5)  ,(0,17) ,(0,0) ,(0)  ]
-    mile_nan=[None       ,man[0]   ,man[0]    ,man[0] ,man[0] ,man[0] ,man[0],-1   ]
+    col20=col[20]
+    a_roc=df[col20]
 
-    mile=['maxq','thup','beco','meco','fair','seco','oib','oibeco','pay','eof']
+    vr=[]
+    vrr=[] # vrr[0]=lift off,   #vrr[1]=beco/meco,   vrr[2]=meco/seco   #vrr[3]=seco/na
+    for i1 in v_roc:
+        if(i1<0.01):
+            vr.append(i1)
+        elif vr:
+            vrr.append(vr[0])
+            vr=[]
+    if vr:
+        vrr.append(vr[0])
 
-    user_opt=[(fl[fol[9]].iloc[0]),(fl[fol[10]].iloc[0]),(fl[fol[11]].iloc[0])]
+    mr=[] # mr[0]=beco/meco,    # mr[1]=meco/fair,  # mr[2]=fair/pay,   # mr[3]=pay/na
+    for i2 in m_roc:
+        if(i2>1):
+            mr.append(i2)    
 
-    schema_table=(f'.'.join((sch,test[3])))
+    late_multiplier=0.25
+
+    mile_col=['milestone','altitude','range','speed','delta','time','row','special']
+    mile_pos=[                      (0,2)   ,(0,3)  ,(0,5)  ,(0,17),(0,0),(0)]
+    mile_nan=[None       ,man[0]    ,man[0] ,man[0] ,man[0] ,man[0],-1   ,man[0]]
+
+    mile=['maxq','thup','beco','meco','fair','krml','seco','oib','oibeco','pay','eof']
+
+    schema_table=(f'.'.join((sch,test[5])))
 
     print(f' Creating Table: {cr[4]} [ksp.{schema_table}] {cr[0]}')
     sl(t2)
@@ -457,9 +481,7 @@ def flight_data():
     sl(t1)
     print(f' Writing to Table {cr[4]}[ksp.{schema_table}]{cr[0]}{nl}')
 
-    war=[]
-
-    def maxq():
+    def maxq(): # 0
 
         col8=col[8]        
         Q=df[col8]
@@ -481,25 +503,25 @@ def flight_data():
         ms=round(int(td.components.milliseconds), 3)
         time=('{:02d}:{:02d}.{:03d}'.format(mm,ss,ms))
 
-        data=tuple([mist,maxQ,alt,rng,spd,dtv,rwt,int(row)])
+        data=tuple([mist,alt,rng,spd,dtv,rwt,int(row),maxQ])
 
         print(f'{cr[1]} Maximum Dynamic Pressure (MAXQ){cr[0]}')
         sl(t1)
-        print(f'{cr[2]} - Dynamic Pressure (Q):    {data[1]:.3f} Pa{cr[0]}')
+        print(f'{cr[4]} - Altitude:                {(data[1]/km):.3f} km{cr[0]}')
         sl(t1)
-        print(f'{cr[4]} - Altitude:                {(data[2]/km):.3f} km{cr[0]}')
+        print(       f' - Downrange:               {(data[2]/km):.3f} km')
         sl(t1)
-        print(       f' - Downrange:               {(data[3]/km):.3f} km')
+        print(       f' - Velocity:                {data[3]:.3f} m')
         sl(t1)
-        print(       f' - Velocity:                {data[4]:.3f} m')
+        print(       f' - Delta V Used:            {data[4]:.3f} m/s')
         sl(t1)
-        print(       f' - Delta V Used:            {data[5]:.3f} m/s')
-        sl(t1)
-        print(f'{cr[3]} - Raw Time:                {data[6]:.3f} s {cr[0]}')
+        print(f'{cr[3]} - Raw Time:                {data[5]:.3f} s {cr[0]}')
         sl(t1)
         print(       f' - Flight Time:             {time}')
         sl(t1)
-        print(f'{cr[5]} - Table Row:               {data[7]}{cr[0]}')
+        print(f'{cr[5]} - Table Row:               {data[6]}{cr[0]}')
+        sl(t1)
+        print(f'{cr[2]} - Dynamic Pressure (Q):    {data[7]:.3f} Pa{cr[0]}')
 
         SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')
         cur.execute(SQL,(data,))
@@ -512,23 +534,22 @@ def flight_data():
 
         return(data)
     
-    def thup():
+    def thup(): # 1
         
         time=df[col[0]]
-        change=col[20]
-        a_rate=df[change]
+        column=col[20]
+        a_rate=df[column]
 
         lst=[]
         for i in time:
             if(i>35)&(i<50):
                 lst.append(i)
-
         try:                
-            thup=max(df[time.isin(lst)][col[20]])
+            thup=max(df[time.isin(lst)][column])
+            
             val=df[a_rate==thup]
 
             mist=mile[1]
-            nan=man[0]
             alt=val.iloc[mile_pos[0]]    
             rng=val.iloc[mile_pos[1]]
             spd=val.iloc[mile_pos[2]]
@@ -542,401 +563,364 @@ def flight_data():
             ms=round(int(td.components.milliseconds), 3)
             time=('{:02d}:{:02d}.{:03d}'.format(mm,ss,ms))
 
-            data=tuple([mist,nan,alt,rng,spd,dtv,rwt,int(row)])
+            data=tuple([mist,alt,rng,spd,dtv,rwt,int(row),nan])
 
             print(f'{cr[1]} Throttle Up (THUP){cr[0]}')
             sl(t1)
-            print(f'{cr[4]} - Altitude:                {(data[2]/km):.3f} km{cr[0]}')
+            print(f'{cr[4]} - Altitude:                {(data[1]/km):.3f} km{cr[0]}')
             sl(t1)
-            print(       f' - Downrange:               {(data[3]/km):.3f} km')
+            print(       f' - Downrange:               {(data[2]/km):.3f} km')
             sl(t1)
-            print(       f' - Velocity:                {data[4]:.3f} m')
+            print(       f' - Velocity:                {data[3]:.3f} m')
             sl(t1)
-            print(       f' - Delta V Used:            {data[5]:.3f} m/s')
+            print(       f' - Delta V Used:            {data[4]:.3f} m/s')
             sl(t1)
-            print(f'{cr[3]} - Raw Time:                {data[6]:.3f} s {cr[0]}')
+            print(f'{cr[3]} - Raw Time:                {data[5]:.3f} s {cr[0]}')
             sl(t1)
             print(       f' - Flight Time:             {time}')
             sl(t1)
-            print(f'{cr[5]} - Table Row:               {data[7]}{cr[0]}')
+            print(f'{cr[5]} - Table Row:               {data[6]}{cr[0]}')
+            sl(t3)
+            print(f'{cr[3]} Complete!{cr[0]}{nl}')
+            sl(t3)
 
         except(KeyError):
             mile_nan[0]=mile[1]
             data=tuple(mile_nan)
-            print(f'{cr[1]}! No Throttle Up Found !{cr[0]}{nl}'.format(cr[1],cr[0],nl))
+            
+        SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')
+        cur.execute(SQL,(data,))
+        
+        raw.append(data)
+        war.append(data)
+
+        return(data)
+
+    def beco(): # 2
+
+        # boosters on test file 1
+        # boosters on test file 2x
+        # no boosters on test file 3
+
+        # boosters equipped
+        # if(user[0]==True):
+
+        #     stg=stage_list[0]
+        #     val=df[stage==stg]
+
+        #     print(val)
+        #     exit()
+
+        #     # using generated dataframe find relevant values
+        #     alt=val.iloc[pos[0]]    
+        #     rng=val.iloc[pos[1]]
+        #     spd=val.iloc[pos[2]]
+        #     dtv=val.iloc[pos[3]]
+        #     rwt=val.iloc[pos[4]]
+        #     row=val.index[pos[5]]
+            
+        #     # clock time generation
+        #     td=pd.to_timedelta(rwt,'sec')
+        #     mm=int(td.components.minutes)
+        #     ss=int(td.components.seconds)
+        #     ms=round(int(td.components.milliseconds), 3)
+        #     time=('{}:{:02d}.{:03d}'.format(mm,ss,ms))  
+
+        #     # data list
+        #     data=[mile[2],nan,alt,rng,spd,dtv,rwt,row]
+
+        #     # read out
+        #     print('{} Booster Engine Cut Off (BECO) {}{}'.format(cr[1],cr[0],nl))
+        #     sl(t2)
+        #     print('{}  - Alt:          {:.3f}    km{}'.format(cr[7],(data[2]/km),cr[0]))
+        #     sl(t1)
+        #     print('  - Range:        {:.3f}    km'.format(data[3]/km))
+        #     sl(t1)
+        #     print('  - Speed:        {:.3f}  m/s'.format(data[4]))
+        #     sl(t1)
+        #     print('  - Delta V Used: {:.3f}  m/s'.format(data[5]))
+        #     sl(t1)
+        #     print('  - Time (Raw):   {:.3f}   s'.format(data[6]))
+        #     sl(t1)
+        #     print('{}  - Time:         {}{}'.format(cr[6],time,cr[0]))
+        #     sl(t1)
+        #     print('  - Row:          {:.0f}{}'.format(data[7],nl))
+        
+        # # no boosters equipped
+        # else:
+        mile_nan[0]=mile[2]
+        data=tuple(mile_nan)
+            
+        SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')
+        cur.execute(SQL,(data,))
+
+        raw.append(data)
+        war.append(data)
+
+        return(data)
+
+    def meco(): # 3
+
+        if(user[0]==True):
+            num=[mr[1]]
+        else:
+            num=[mr[0]]
+
+        point=df[m_roc.isin(num)][col19]
+        value=point.iloc[0]
+        val=df[m_roc==value]
+
+        mist=mile[3]
+        alt=val.iloc[mile_pos[0]]    
+        rng=val.iloc[mile_pos[1]]
+        spd=val.iloc[mile_pos[2]]
+        dtv=val.iloc[mile_pos[3]]
+        rwt=val.iloc[mile_pos[4]]
+        row=val.index[mile_pos[5]]
+
+        # clock time generation
+        td=pd.to_timedelta(rwt,'sec')
+        mm=int(td.components.minutes)
+        ss=int(td.components.seconds)
+        ms=round(int(td.components.milliseconds), 3)
+        time=('{:02d}:{:02d}.{:03d}'.format(mm,ss,ms))
+
+        data=tuple([mist,alt,rng,spd,dtv,rwt,int(row),nan])
+
+        print(f'{cr[1]}Main Engine Cut Off (MECO){cr[0]}')
+        sl(t1)
+        print(f'{cr[4]} - Altitude:                {(data[1]/km):.3f} km{cr[0]}')
+        sl(t1)
+        print(       f' - Downrange:               {(data[2]/km):.3f} km')
+        sl(t1)
+        print(       f' - Velocity:                {data[3]:.3f} m')
+        sl(t1)
+        print(       f' - Delta V Used:            {data[4]:.3f} m/s')
+        sl(t1)
+        print(f'{cr[3]} - Raw Time:                {data[5]:.3f} s {cr[0]}')
+        sl(t1)
+        print(       f' - Flight Time:             {time}')
+        sl(t1)
+        print(f'{cr[5]} - Table Row:               {data[6]}{cr[0]}')
 
         SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')
         cur.execute(SQL,(data,))
         sl(t3)
         print(f'{cr[3]} Complete!{cr[0]}{nl}')
         sl(t3)
-        
+
         raw.append(data)
         war.append(data)
 
-        exit()
         return(data)
+    
+    def fair(): # 4
 
-    def beco():
+        # no fairinf on test file 1
+        # no fairing on test file 2
+        # fairing on test file 3
 
-        # boosers equipped
-        if(user_opt[0]==True):
+        if(user[1]==True):
+            if(user[0]==True):
+                num=[mr[2]]
+            else:
+                num=[mr[1]]
 
-            stg=stage[0]
-            val=df[stgs==stg]
+            point=df[m_roc.isin(num)][col19]
+            value=point.iloc[0]
+            val=df[m_roc==value]
 
-            # using generated dataframe find relevant values
-            alt=val.iloc[pos[0]]    
-            rng=val.iloc[pos[1]]
-            spd=val.iloc[pos[2]]
-            dtv=val.iloc[pos[3]]
-            rwt=val.iloc[pos[4]]
-            row=val.index[pos[5]]
+            mist=mile[4]
+            alt=val.iloc[mile_pos[0]]    
+            rng=val.iloc[mile_pos[1]]
+            spd=val.iloc[mile_pos[2]]
+            dtv=val.iloc[mile_pos[3]]
+            rwt=val.iloc[mile_pos[4]]
+            row=val.index[mile_pos[5]]
             
-            # clock time generation
             td=pd.to_timedelta(rwt,'sec')
             mm=int(td.components.minutes)
             ss=int(td.components.seconds)
             ms=round(int(td.components.milliseconds), 3)
-            time=('{}:{:02d}.{:03d}'.format(mm,ss,ms))  
+            time=('{:02d}:{:02d}.{:03d}'.format(mm,ss,ms))
 
-            # data list
-            data=[mile[2],nan,alt,rng,spd,dtv,rwt,row]
+            data=tuple([mist,alt,rng,spd,dtv,rwt,int(row),nan])
 
-            # read out
-            print('{} Booster Engine Cut Off (BECO) {}{}'.format(cr[1],cr[0],nl))
-            sl(t2)
-            print('{}  - Alt:          {:.3f}    km{}'.format(cr[7],(data[2]/km),cr[0]))
+            print(f'{cr[1]} Fairing Separation (FAIR){cr[0]}')
             sl(t1)
-            print('  - Range:        {:.3f}    km'.format(data[3]/km))
+            print(f'{cr[4]} - Altitude:                {(data[1]/km):.3f} km{cr[0]}')
             sl(t1)
-            print('  - Speed:        {:.3f}  m/s'.format(data[4]))
+            print(       f' - Downrange:               {(data[2]/km):.3f} km')
             sl(t1)
-            print('  - Delta V Used: {:.3f}  m/s'.format(data[5]))
+            print(       f' - Velocity:                {data[3]:.3f} m')
             sl(t1)
-            print('  - Time (Raw):   {:.3f}   s'.format(data[6]))
+            print(       f' - Delta V Used:            {data[4]:.3f} m/s')
             sl(t1)
-            print('{}  - Time:         {}{}'.format(cr[6],time,cr[0]))
+            print(f'{cr[3]} - Raw Time:                {data[5]:.3f} s {cr[0]}')
             sl(t1)
-            print('  - Row:          {:.0f}{}'.format(data[7],nl))
+            print(       f' - Flight Time:             {time}')
+            sl(t1)
+            print(f'{cr[5]} - Table Row:               {data[6]}{cr[0]}')
+            sl(t3)
+            print(f'{cr[3]} Complete!{cr[0]}{nl}')
+            sl(t3)
         
-        # no boosters equipped
         else:
-            no_data[0]=mile[2]
-            data=no_data
-            print('{}! Boosters Not Equipped !{}{}'.format(cr[1],cr[0],nl))
+            mile_nan[0]=mile[3]
+            data=tuple(mile_nan)
             
-        # sql insert        imporve
-        INS=('''INSERT INTO 
-                    {} 
-                    ({},{},{},{},{},{},{},{})
-                    VALUES 
-                    ('{}','{}','{}','{}','{}','{}','{}','{}');
-                    '''.format(schema_table,
-                               pst[0],pst[1],pst[2],pst[3],pst[4],pst[5],pst[6],pst[7],
-                               data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[7]))
-        cur.execute(INS)
-        
-        # raw data read out
-        # sl(t2)
-        # print('Raw Data: {}{}'.format(data,nl))
+        SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')
+        cur.execute(SQL,(data,))
 
-        # append to overall raw data list
         raw.append(data)
-        sl(t4)
+        war.append(data)
 
         return(data)
 
-    def meco():
-
-        if(options[0]==True):
-            stg=stage[1]
-        else:
-            stg=stage[0]
-
-        val=df[stgs==stg]
-
-        # using generated dataframe find relevant values
-        alt=val.iloc[pos[0]]    
-        rng=val.iloc[pos[1]]
-        spd=val.iloc[pos[2]]
-        dtv=val.iloc[pos[3]]
-        rwt=val.iloc[pos[4]]
-        row=val.index[pos[5]]
+    def seco(): # 5
         
+        if(user[0]==True):
+            num=[vrr[3]]
+        else:
+            num=[vrr[2]]
+
+        point=df[v_roc.isin(num)][col18]
+        value=point.iloc[0]
+        val=df[v_roc==value]
+
+        mist=mile[6]
+        alt=val.iloc[mile_pos[0]]    
+        rng=val.iloc[mile_pos[1]]
+        spd=val.iloc[mile_pos[2]]
+        dtv=val.iloc[mile_pos[3]]
+        rwt=val.iloc[mile_pos[4]]
+        row=val.index[mile_pos[5]]
+
         # clock time generation
         td=pd.to_timedelta(rwt,'sec')
         mm=int(td.components.minutes)
         ss=int(td.components.seconds)
         ms=round(int(td.components.milliseconds), 3)
-        time=('{}:{:02d}.{:03d}'.format(mm,ss,ms))  
+        time=('{:02d}:{:02d}.{:03d}'.format(mm,ss,ms))
 
-        # data list
-        data=[mile[3],nan,alt,rng,spd,dtv,rwt,row]
+        data=tuple([mist,alt,rng,spd,dtv,rwt,int(row),nan])
 
-        # sql insert
-        INS=('''INSERT INTO 
-                {} 
-                ({},{},{},{},{},{},{},{})
-                VALUES 
-                ('{}','{}','{}','{}','{}','{}','{}','{}');
-                '''.format(schema_table,
-                           pst[0],pst[1],pst[2],pst[3],pst[4],pst[5],pst[6],pst[7],
-                           data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[7]))
-        cur.execute(INS)
+        print(f'{cr[1]} Second Engine Cutt Off (SECO){cr[0]}')
+        sl(t1)
+        print(f'{cr[4]} - Altitude:                {(data[1]/km):.3f} km{cr[0]}')
+        sl(t1)
+        print(       f' - Downrange:               {(data[2]/km):.3f} km')
+        sl(t1)
+        print(       f' - Velocity:                {data[3]:.3f} m')
+        sl(t1)
+        print(       f' - Delta V Used:            {data[4]:.3f} m/s')
+        sl(t1)
+        print(f'{cr[3]} - Raw Time:                {data[5]:.3f} s {cr[0]}')
+        sl(t1)
+        print(       f' - Flight Time:             {time}')
+        sl(t1)
+        print(f'{cr[5]} - Table Row:               {data[6]}{cr[0]}')
 
-        # read out
-        print('{} Main Engine Cut Off (MECO) {}{}'.format(cr[1],cr[0],nl))
-        sl(t2)
-        print('{}  - Alt:          {:.3f}    km{}'.format(cr[7],(data[2]/km),cr[0]))
-        sl(t1)
-        print('  - Range:        {:.3f}    km'.format(data[3]/km))
-        sl(t1)
-        print('  - Speed:        {:.3f}  m/s'.format(data[4]))
-        sl(t1)
-        print('  - Delta V Used: {:.3f}  m/s'.format(data[5]))
-        sl(t1)
-        print('  - Time (Raw):   {:.3f}   s'.format(data[6]))
-        sl(t1)
-        print('{}  - Time:         {}{}'.format(cr[6],time,cr[0]))
-        sl(t1)
-        print('  - Row:          {:.0f}{}'.format(data[7],nl))
-        # sl(t2)
-        # print('Raw Data: {}{}'.format(data,nl))
-        
-        # append to overall raw data list
+        SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')
+        cur.execute(SQL,(data,))
+        sl(t3)
+        print(f'{cr[3]} Complete!{cr[0]}{nl}')
+        sl(t3)
+
         raw.append(data)
-        sl(t4)
-
-        return(data)
-    
-    def fair():
-
-        # no fairinf on test file
-
-        alt=df[col[2]]
-        rate=df[col[19]]
-
-        if(options[1]==True):
-
-            zone=[]
-            for i in alt:
-                if(i>68000)&(i<70000):
-                    zone.append(i)
-
-            zone_rate=df[alt.isin(zone)][col[19]]
-            moment=min(zone_rate)
-            val=df[rate==moment]
-            
-            # using generated dataframe find relevant values
-            alt=val.iloc[pos[0]]    
-            rng=val.iloc[pos[1]]
-            spd=val.iloc[pos[2]]
-            dtv=val.iloc[pos[3]]
-            rwt=val.iloc[pos[4]]
-            row=val.index[pos[5]]
-            
-            # clock time generation
-            td=pd.to_timedelta(rwt,'sec')
-            mm=int(td.components.minutes)
-            ss=int(td.components.seconds)
-            ms=round(int(td.components.milliseconds), 3)
-            time=('{}:{:02d}.{:03d}'.format(mm,ss,ms))  
-
-            # data list
-            data=[mile[1],nan,alt,rng,spd,dtv,rwt,row]
-
-            # read out
-            print('{} Fairing Separation (FAIR) {}{}'.format(cr[1],cr[0],nl))
-            sl(t2)
-            print('{}  - Alt:          {:.3f}    km{}'.format(cr[7],(data[2]/km),cr[0]))
-            sl(t1)
-            print('  - Range:        {:.3f}    km'.format(data[3]/km))
-            sl(t1)
-            print('  - Speed:        {:.3f}  m/s'.format(data[4]))
-            sl(t1)
-            print('  - Delta V Used: {:.3f}  m/s'.format(data[5]))
-            sl(t1)
-            print('  - Time (Raw):   {:.3f}   s'.format(data[6]))
-            sl(t1)
-            print('{}  - Time:         {}{}'.format(cr[6],time,cr[0]))
-            sl(t1)
-            print('  - Row:          {:.0f}{}'.format(data[7],nl))
-        
-        else:
-
-            no_data[0]=mile[4]
-            data=no_data
-            print('{}! No Fairing Required !{}{}'.format(cr[1],cr[0],nl))
-
-        # sql insert        imporve
-        INS=('''INSERT INTO 
-                    {} 
-                    ({},{},{},{},{},{},{},{})
-                    VALUES 
-                    ('{}','{}','{}','{}','{}','{}','{}','{}');
-                    '''.format(schema_table,
-                               pst[0],pst[1],pst[2],pst[3],pst[4],pst[5],pst[6],pst[7],
-                               data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[7]))
-        cur.execute(INS)
-        
-        # raw data read out
-        # sl(t2)
-        # print('Raw Data: {}{}'.format(data,nl))
-
-        # append to overall raw data list
-        raw.append(data)
-        sl(t4)
+        war.append(data)
 
         return(data)
 
-    def seco():
+    def oib():  # 6
+
+        change=col[18]
+        v_roc=df[change]
+        rate=v_roc.index
         
-        v=df[col[5]]
-        maxv=max(v)
-        val=df[v==maxv]
-
-        # using generated dataframe find relevant values
-        alt=val.iloc[pos[0]]    
-        rng=val.iloc[pos[1]]
-        spd=val.iloc[pos[2]]
-        dtv=val.iloc[pos[3]]
-        rwt=val.iloc[pos[4]]
-        row=val.index[pos[5]]
-        
-        # clock time generation
-        td=pd.to_timedelta(rwt,'sec')
-        mm=int(td.components.minutes)
-        ss=int(td.components.seconds)
-        ms=round(int(td.components.milliseconds), 3)
-        time=('{}:{:02d}.{:03d}'.format(mm,ss,ms))  
-
-        # data list
-        data=[mile[5],nan,alt,rng,spd,dtv,rwt,row]
-
-        # sql insert
-        INS=('''INSERT INTO 
-                {} 
-                ({},{},{},{},{},{},{},{})
-                VALUES 
-                ('{}','{}','{}','{}','{}','{}','{}','{}');
-                '''.format(schema_table,
-                           pst[0],pst[1],pst[2],pst[3],pst[4],pst[5],pst[6],pst[7],
-                           data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[7]))
-        cur.execute(INS)
-
-        # read out
-        print('{} Second Engine Cut Off (SECO) {}{}'.format(cr[1],cr[0],nl))
-        sl(t2)
-        print('{}  - Alt:          {:.3f}    km{}'.format(cr[7],(data[2]/km),cr[0]))
-        sl(t1)
-        print('  - Range:        {:.3f}    km'.format(data[3]/km))
-        sl(t1)
-        print('  - Speed:        {:.3f}  m/s'.format(data[4]))
-        sl(t1)
-        print('  - Delta V Used: {:.3f}  m/s'.format(data[5]))
-        sl(t1)
-        print('  - Time (Raw):   {:.3f}   s'.format(data[6]))
-        sl(t1)
-        print('{}  - Time:         {}{}'.format(cr[6],time,cr[0]))
-        sl(t1)
-        print('  - Row:          {:.0f}{}'.format(data[7],nl))
-        # sl(t2)
-        # print('Raw Data: {}{}'.format(data,nl))
-        
-        # append to overall raw data list
-        raw.append(data)
-        sl(t4)
-
-        return(data)
-    
-    def oib():
-
-        change=col[20]
-        rate=df[change]
-        r=rate.index
-        
-        # improve
-        a=0
-
-        b=(-1)
-        c=r[b]
-        d=0.25
-        e=int(c-(c*d))
-
         x=0
-        y=10
+        a=war[5][6]
+        b=(rate[-1]-(rate[-1]*0.25))
 
         lst=[]
-        for i in rate:
-            q=r[b]
-            s=abs(i)
-            if(q>e)&(i!=x)&(s>y):
+        for i in v_roc:
+            c=rate[x]
+            if(1<i!=0)&(a<c<b):
                 lst.append(i)
-            a+=1
-        burn=df[rate.isin(lst)][change]
-        imp=max(burn)
-        val=df[rate==imp]
+            x+=1
         
-        # using generated dataframe find relevant values
-        alt=val.iloc[pos[0]]    
-        rng=val.iloc[pos[1]]
-        spd=val.iloc[pos[2]]
-        dtv=val.iloc[pos[3]]
-        rwt=val.iloc[pos[4]]
-        row=val.index[pos[5]]
+        point=df[v_roc.isin(lst)][change]
+        value=point.iloc[0]
+        val=df[v_roc==value]
         
+        mist=mile[7]
+        alt=val.iloc[mile_pos[0]]    
+        rng=val.iloc[mile_pos[1]]
+        spd=val.iloc[mile_pos[2]]
+        dtv=val.iloc[mile_pos[3]]
+        rwt=val.iloc[mile_pos[4]]
+        row=val.index[mile_pos[5]]
+
         # clock time generation
         td=pd.to_timedelta(rwt,'sec')
         mm=int(td.components.minutes)
         ss=int(td.components.seconds)
         ms=round(int(td.components.milliseconds), 3)
-        time=('{}:{:02d}.{:03d}'.format(mm,ss,ms))  
+        time=('{:02d}:{:02d}.{:03d}'.format(mm,ss,ms))
 
-        # data list
-        data=[mile[6],nan,alt,rng,spd,dtv,rwt,row]
+        data=tuple([mist,alt,rng,spd,dtv,rwt,int(row),nan])
 
-        # sql insert
-        INS=('''INSERT INTO 
-                {} 
-                ({},{},{},{},{},{},{},{})
-                VALUES 
-                ('{}','{}','{}','{}','{}','{}','{}','{}');
-                '''.format(schema_table,
-                           pst[0],pst[1],pst[2],pst[3],pst[4],pst[5],pst[6],pst[7],
-                           data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[7]))
-        cur.execute(INS)
+        print(f'{cr[1]} Orbital Insertion Burn (OIB){cr[0]}')
+        sl(t1)
+        print(f'{cr[4]} - Altitude:                {(data[1]/km):.3f} km{cr[0]}')
+        sl(t1)
+        print(       f' - Downrange:               {(data[2]/km):.3f} km')
+        sl(t1)
+        print(       f' - Velocity:                {data[3]:.3f} m')
+        sl(t1)
+        print(       f' - Delta V Used:            {data[4]:.3f} m/s')
+        sl(t1)
+        print(f'{cr[3]} - Raw Time:                {data[5]:.3f} s {cr[0]}')
+        sl(t1)
+        print(       f' - Flight Time:             {time}')
+        sl(t1)
+        print(f'{cr[5]} - Table Row:               {data[6]}{cr[0]}')
 
-        # read out
-        print('{} Orbital Insertion Burn (OIB) {}{}'.format(cr[1],cr[0],nl))
-        sl(t2)
-        print('{}  - Alt:          {:.3f}    km{}'.format(cr[7],(data[2]/km),cr[0]))
-        sl(t1)
-        print('  - Range:        {:.3f}    km'.format(data[3]/km))
-        sl(t1)
-        print('  - Speed:        {:.3f}  m/s'.format(data[4]))
-        sl(t1)
-        print('  - Delta V Used: {:.3f}  m/s'.format(data[5]))
-        sl(t1)
-        print('  - Time (Raw):   {:.3f}   s'.format(data[6]))
-        sl(t1)
-        print('{}  - Time:         {}{}'.format(cr[6],time,cr[0]))
-        sl(t1)
-        print('  - Row:          {:.0f}{}'.format(data[7],nl))
-        # sl(t2)
-        # print('Raw Data: {}{}'.format(data,nl))
-        
-        # append to overall raw data list
+        SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')
+        cur.execute(SQL,(data,))
+        sl(t3)
+        print(f'{cr[3]} Complete!{cr[0]}{nl}')
+        sl(t3)
+
         raw.append(data)
-        sl(t4)
+        war.append(data)
 
         return(data)
     
     def oibeco():
 
-        change=col[20]
-        rate=df[change]
-        r=rate.index
+        change=col[19]
+        m_roc=df[change]
+        rate=m_roc.index
+
+
+        x=0
+        a=war[6][6]
+
+        lst=[]
+        for i in m_roc:
+            c=rate[x]
+            if(i==0)&(a<c):
+                lst.append(i)
+
+        num=df[m_roc.isin(lst)][change]
+        print(num)
+        
+                
+
+
+
+        exit()
 
         a=0
 
@@ -960,62 +944,51 @@ def flight_data():
         rt=df[rate.isin(lst)][change]
         rt=rt.drop(rt.index[-1:],axis=0)
         if (rt.index[0])==(raw[6][7]):
-            print(True)
             rt=rt.drop(rt.index[:0],axis=0)
         cut=rt.iloc[-1]
         val=df[rate==cut]
         
-        # using generated dataframe find relevant values
-        alt=val.iloc[pos[0]]    
-        rng=val.iloc[pos[1]]
-        spd=val.iloc[pos[2]]
-        dtv=val.iloc[pos[3]]
-        rwt=val.iloc[pos[4]]
-        row=val.index[pos[5]]
-        
+        mist=mile[8]
+        alt=val.iloc[mile_pos[0]]    
+        rng=val.iloc[mile_pos[1]]
+        spd=val.iloc[mile_pos[2]]
+        dtv=val.iloc[mile_pos[3]]
+        rwt=val.iloc[mile_pos[4]]
+        row=val.index[mile_pos[5]]
+
         # clock time generation
         td=pd.to_timedelta(rwt,'sec')
         mm=int(td.components.minutes)
         ss=int(td.components.seconds)
         ms=round(int(td.components.milliseconds), 3)
-        time=('{}:{:02d}.{:03d}'.format(mm,ss,ms))  
+        time=('{:02d}:{:02d}.{:03d}'.format(mm,ss,ms))
 
-        # data list
-        data=[mile[7],nan,alt,rng,spd,dtv,rwt,row]
+        data=tuple([mist,alt,rng,spd,dtv,rwt,int(row),nan])
 
-        # sql insert
-        INS=('''INSERT INTO 
-                {} 
-                ({},{},{},{},{},{},{},{})
-                VALUES 
-                ('{}','{}','{}','{}','{}','{}','{}','{}');
-                '''.format(schema_table,
-                           pst[0],pst[1],pst[2],pst[3],pst[4],pst[5],pst[6],pst[7],
-                           data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[7]))
-        cur.execute(INS)
+        print(f'{cr[1]} Orbital Insertion Burn Engine Cut Off (OIBECO){cr[0]}')
+        sl(t1)
+        print(f'{cr[4]} - Altitude:                {(data[1]/km):.3f} km{cr[0]}')
+        sl(t1)
+        print(       f' - Downrange:               {(data[2]/km):.3f} km')
+        sl(t1)
+        print(       f' - Velocity:                {data[3]:.3f} m')
+        sl(t1)
+        print(       f' - Delta V Used:            {data[4]:.3f} m/s')
+        sl(t1)
+        print(f'{cr[3]} - Raw Time:                {data[5]:.3f} s {cr[0]}')
+        sl(t1)
+        print(       f' - Flight Time:             {time}')
+        sl(t1)
+        print(f'{cr[5]} - Table Row:               {data[6]}{cr[0]}')
 
-        # read out
-        print('{} OIB Engine Cut Off (OIBECO) {}{}'.format(cr[1],cr[0],nl))
-        sl(t2)
-        print('{}  - Alt:          {:.3f}    km{}'.format(cr[7],(data[2]/km),cr[0]))
-        sl(t1)
-        print('  - Range:        {:.3f}    km'.format(data[3]/km))
-        sl(t1)
-        print('  - Speed:        {:.3f}  m/s'.format(data[4]))
-        sl(t1)
-        print('  - Delta V Used: {:.3f}  m/s'.format(data[5]))
-        sl(t1)
-        print('  - Time (Raw):   {:.3f}   s'.format(data[6]))
-        sl(t1)
-        print('{}  - Time:         {}{}'.format(cr[6],time,cr[0]))
-        sl(t1)
-        print('  - Row:          {:.0f}{}'.format(data[7],nl))
-        # sl(t2)
-        # print('Raw Data: {}{}'.format(data,nl))
-        
-        # append to overall raw data list
+        SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')
+        cur.execute(SQL,(data,))
+        sl(t3)
+        print(f'{cr[3]} Complete!{cr[0]}{nl}')
+        sl(t3)
+
         raw.append(data)
-        sl(t4)
+        war.append(data)
 
         return(data)
 
@@ -1027,7 +1000,7 @@ def flight_data():
         rate=df[cha]
         r=rate.index
 
-        if(options[2]==True):
+        if(user[2]==True):
             a=0
 
             b=(-1)
@@ -1048,66 +1021,48 @@ def flight_data():
             rt=df[rate.isin(lst)][cha]
             moment=min(rt)
             val=df[rate==moment]
-            print(val)
 
-            # using generated dataframe find relevant values
-            alt=val.iloc[pos[0]]    
-            rng=val.iloc[pos[1]]
-            spd=val.iloc[pos[2]]
-            dtv=val.iloc[pos[3]]
-            rwt=val.iloc[pos[4]]
-            row=val.index[pos[5]]
-            
-            # clock time generation
-            td=pd.to_timedelta(rwt,'sec')
-            mm=int(td.components.minutes)
-            ss=int(td.components.seconds)
-            ms=round(int(td.components.milliseconds), 3)
-            time=('{}:{:02d}.{:03d}'.format(mm,ss,ms))  
+        mist=mile[9]
+        alt=val.iloc[mile_pos[0]]    
+        rng=val.iloc[mile_pos[1]]
+        spd=val.iloc[mile_pos[2]]
+        dtv=val.iloc[mile_pos[3]]
+        rwt=val.iloc[mile_pos[4]]
+        row=val.index[mile_pos[5]]
 
-            # data list
-            data=[mile[1],nan,alt,rng,spd,dtv,rwt,row]
+        # clock time generation
+        td=pd.to_timedelta(rwt,'sec')
+        mm=int(td.components.minutes)
+        ss=int(td.components.seconds)
+        ms=round(int(td.components.milliseconds), 3)
+        time=('{:02d}:{:02d}.{:03d}'.format(mm,ss,ms))
 
-            # read out
-            print('{} Payload Release (PAYR) {}{}'.format(cr[1],cr[0],nl))
-            sl(t2)
-            print('{}  - Alt:          {:.3f}    km{}'.format(cr[7],(data[2]/km),cr[0]))
-            sl(t1)
-            print('  - Range:        {:.3f}    km'.format(data[3]/km))
-            sl(t1)
-            print('  - Speed:        {:.3f}  m/s'.format(data[4]))
-            sl(t1)
-            print('  - Delta V Used: {:.3f}  m/s'.format(data[5]))
-            sl(t1)
-            print('  - Time (Raw):   {:.3f}   s'.format(data[6]))
-            sl(t1)
-            print('{}  - Time:         {}{}'.format(cr[6],time,cr[0]))
-            sl(t1)
-            print('  - Row:          {:.0f}{}'.format(data[7],nl))
-            # silent - callisto payload is technically its second stage
-        else:
-            no_data[0]=mile[9]
-            data=no_data
-            print('{}! No Payload Released !{}{}'.format(cr[1],cr[0],nl))
+        data=tuple([mist,alt,rng,spd,dtv,rwt,int(row),nan])
 
-         # sql insert        imporve
-        INS=('''INSERT INTO 
-                    {} 
-                    ({},{},{},{},{},{},{},{})
-                    VALUES 
-                    ('{}','{}','{}','{}','{}','{}','{}','{}');
-                    '''.format(schema_table,
-                               pst[0],pst[1],pst[2],pst[3],pst[4],pst[5],pst[6],pst[7],
-                               data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[7]))
-        cur.execute(INS)
-        
-        # raw data read out
-        # sl(t2)
-        # print('Raw Data: {}{}'.format(data,nl))
+        print(f'{cr[1]} Payload Release (PAY){cr[0]}')
+        sl(t1)
+        print(f'{cr[4]} - Altitude:                {(data[1]/km):.3f} km{cr[0]}')
+        sl(t1)
+        print(       f' - Downrange:               {(data[2]/km):.3f} km')
+        sl(t1)
+        print(       f' - Velocity:                {data[3]:.3f} m')
+        sl(t1)
+        print(       f' - Delta V Used:            {data[4]:.3f} m/s')
+        sl(t1)
+        print(f'{cr[3]} - Raw Time:                {data[5]:.3f} s {cr[0]}')
+        sl(t1)
+        print(       f' - Flight Time:             {time}')
+        sl(t1)
+        print(f'{cr[5]} - Table Row:               {data[6]}{cr[0]}')
 
-        # append to overall raw data list
+        SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')
+        cur.execute(SQL,(data,))
+        sl(t3)
+        print(f'{cr[3]} Complete!{cr[0]}{nl}')
+        sl(t3)
+
         raw.append(data)
-        sl(t4)
+        war.append(data)
 
         return(data)
     
@@ -1120,75 +1075,69 @@ def flight_data():
         last=time.iloc[-1]
         val=df[time==last]
 
-        # using generated dataframe find relevant values
-        alt=val.iloc[pos[0]]    
-        rng=val.iloc[pos[1]]
-        spd=val.iloc[pos[2]]
-        dtv=val.iloc[pos[3]]
-        rwt=val.iloc[pos[4]]
-        row=val.index[pos[5]]
-        
+        mist=mile[10]
+        alt=val.iloc[mile_pos[0]]    
+        rng=val.iloc[mile_pos[1]]
+        spd=val.iloc[mile_pos[2]]
+        dtv=val.iloc[mile_pos[3]]
+        rwt=val.iloc[mile_pos[4]]
+        row=val.index[mile_pos[5]]
+
         # clock time generation
         td=pd.to_timedelta(rwt,'sec')
         mm=int(td.components.minutes)
         ss=int(td.components.seconds)
         ms=round(int(td.components.milliseconds), 3)
-        time=('{}:{:02d}.{:03d}'.format(mm,ss,ms))  
+        time=('{:02d}:{:02d}.{:03d}'.format(mm,ss,ms))
 
-        # data list
-        data=[mile[9],nan,alt,rng,spd,dtv,rwt,row]
+        data=tuple([mist,alt,rng,spd,dtv,rwt,int(row),nan])
 
-        # sql insert
-        INS=('''INSERT INTO 
-                {} 
-                ({},{},{},{},{},{},{},{})
-                VALUES 
-                ('{}','{}','{}','{}','{}','{}','{}','{}');
-                '''.format(schema_table,
-                           pst[0],pst[1],pst[2],pst[3],pst[4],pst[5],pst[6],pst[7],
-                           data[0],data[1],data[2],data[3],data[4],data[5],data[6],data[7]))
-        cur.execute(INS)
+        print(f'{cr[1]} End of Flight (EoF){cr[0]}')
+        sl(t1)
+        print(f'{cr[4]} - Altitude:                {(data[1]/km):.3f} km{cr[0]}')
+        sl(t1)
+        print(       f' - Downrange:               {(data[2]/km):.3f} km')
+        sl(t1)
+        print(       f' - Velocity:                {data[3]:.3f} m')
+        sl(t1)
+        print(       f' - Delta V Used:            {data[4]:.3f} m/s')
+        sl(t1)
+        print(f'{cr[3]} - Raw Time:                {data[5]:.3f} s {cr[0]}')
+        sl(t1)
+        print(       f' - Flight Time:             {time}')
+        sl(t1)
+        print(f'{cr[5]} - Table Row:               {data[6]}{cr[0]}')
 
-        # read out
-        print('{} End of Flight (EoF) {}{}'.format(cr[1],cr[0],nl))
-        sl(t2)
-        print('{}  - Alt:          {:.3f}    km{}'.format(cr[7],(data[2]/km),cr[0]))
-        sl(t1)
-        print('  - Range:        {:.3f}    km'.format(data[3]/km))
-        sl(t1)
-        print('  - Speed:        {:.3f}  m/s'.format(data[4]))
-        sl(t1)
-        print('  - Delta V Used: {:.3f}  m/s'.format(data[5]))
-        sl(t1)
-        print('  - Time (Raw):   {:.3f}   s'.format(data[6]))
-        sl(t1)
-        print('{}  - Time:         {}{}'.format(cr[6],time,cr[0]))
-        sl(t1)
-        print('  - Row:          {:.0f}{}'.format(data[7],nl))
-        # sl(t2)
-        # print('Raw Data: {}{}'.format(data,nl))
-        
-        # append to overall raw data list
+        SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')
+        cur.execute(SQL,(data,))
+        sl(t3)
+        print(f'{cr[3]} Complete!{cr[0]}{nl}')
+        sl(t3)
+
         raw.append(data)
-        sl(t4)
+        war.append(data)
 
         return(data)        
 
+    
+    
     maxq()      #
     thup()      #
     beco()      #
     meco()      #
-    fair()      #    
+    fair()      #
     seco()      #
     oib()       #
     oibeco()    #
     pay()       #
     fin()       #
 
-    return(raw)
+    return(raw,cur,conn)
 
 def run():
-    flight_data()
+    
+    (raw,cur,conn)=flight_data()
+    cur.close()
     conn.commit()
     conn.close()
     # print(raw)
