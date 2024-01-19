@@ -1,7 +1,8 @@
-from ColorOut import CO
-from doNotGit.psqlConn import psql
 import pandas as pd
 import numpy as np
+
+from ColorOut import CO
+from doNotGit.psqlConn import psql
 from time import sleep as sl
 from psycopg2 import errors, errorcodes
 from statistics import mode
@@ -18,25 +19,20 @@ nl='\n'
 # global math
 km=1000
 
-# time variables
-tyme=0.25
+# wait times
 t1=0.250
-t2=0.500
-t3=0.750
-t4=1
-t5=3
-
-man=[np.NaN,np.inf] # non existent data manipulation    man[0,1]
-
-temp=['templates.data','templates.telemetry'] # database template tables    temp[0,1]
+t2=(t1*2)
+t3=(t1*3)
+t4=(t1*4)
+t5=(t4*3)
 
 raw=[]
 war=[]
 
 def test_params():  # [0,1,2,3,4,5]     [0]
 
-    ver=3
-    file='HM_CAT'           # test[0]
+    ver=1
+    file='Cache_Alpha'      # test[0]
     pad='KSC PAD 1'         # test[1]
     schema='test'           # test[2]
     tele=(f'ttest{ver}')    # test[3]
@@ -49,10 +45,6 @@ def test_params():  # [0,1,2,3,4,5]     [0]
     return(test)
 
 def color(): # [0,1,2,3,4,5]    [1]     text colours
-
-    # complete
-    # formated and edited
-    # comments complete
 
     # normal
     nor=        '\033[0;37m'        # cr[0]
@@ -69,10 +61,6 @@ def color(): # [0,1,2,3,4,5]    [1]     text colours
     return(color)
 
 def start(): # Starting dialogue
-
-    # complete
-    # formatted and edited
-    # waiting on comments
     
     cr=color()
     ts=test_params()
@@ -81,28 +69,18 @@ def start(): # Starting dialogue
 
     print(f'{nl} Kerbal Space Program Launch Telemetry Processing and Database Insertion')
     sl(t1)
-    print(' Python/Postgres')
+    print(     ' Python/Postgres/Pandas/Numpy')
     sl(t1)
-    print(' By: Marcus Dechant')
+    print(     ' By: Marcus Dechant')
     sl(t2)
 
     return(cr,ts)
 
-def user(): # [0,1,2,3,4,5]     [2,3,4]     user input
-
-    # complete
-    # formatted and edited
-    # inital comments complete
-    # waiting on final comments   
+def user(): # [0,1,2,3,4,5]     [2,3,4]     user input 
 
     (cr,ts)=start()
 
     def flight_name(): # [2]   [0,1,2,3]   [3][0,1]
-
-        # complete
-        # formatted and edited
-        # inital comments complete
-        # waiting on final comments
 
         file_raw=ts[0] # test params
 
@@ -116,6 +94,7 @@ def user(): # [0,1,2,3,4,5]     [2,3,4]     user input
         part=file_raw.split("_")                        # part[0,1]
         if(str.lower(part[0])=='cache'):                                                               
             part[0]='callisto'
+            part[0]=part[0].capitalize()
         display_name=(' '.join((part[0],part[1])))
         store_name=(''.join((part[0],part[1])))
         
@@ -124,11 +103,6 @@ def user(): # [0,1,2,3,4,5]     [2,3,4]     user input
         return(lvn)
 
     def launch_pad(): # [3]   [0,1,2]      [2][0,1]
-
-        # complete
-        # formatted and edited
-        # inital comments complete
-        # waiting on final comments
 
         lpad=ts[1] # test params
 
@@ -151,27 +125,50 @@ def user(): # [0,1,2,3,4,5]     [2,3,4]     user input
     lv_class=lvn[3][0]
     
     opts=[]
-    if(lv_class.lower==lvn[3][0]): # Callisto preset factors
-        opts.append('y') 
-        opts.append('n')
-        opts.append('n')
-    else:       # user defines if the launch vehicle had boosters
-        opts.append(input(f'{nl} Did the {lvn[1]} have boosters? (y/n)      : ')) 
-                # user defines if launch vehicle staged a payload
-        opts.append(input(    f' Did the {lvn[1]} need a fairing? (y/n)     : ')) 
-                # user defines if launch vehicle staged a fairing
-        opts.append(input(    f' Did the {lvn[1]} release a payload? (y/n)  : '))            
-        
-    lst=[]             # [4]    [0,1,2]
-    for i in opts:      
-        if(i=='y'):
-            opt=True
-            lst.append(opt)
-        else:
-            opt=False
-            lst.append(opt)
+    if(lv_class.lower=='callisto'):
+        print(f'{nl} Loading Callisto Class Launch Vehicle preset factors')
+        opts.append('y')    # Due to its use case, Callisto class launch vehicle 
+        opts.append('n')    # are known as a static class meaning they retain the
+        opts.append('n')    # same launch factors.
+    
+    else:       
+        while(True): # user defines if the launch vehicle had boosters
+            user1=input(f'{nl} Did {lvn[1]} have boosters? (y/n)      : ')
+            if(user1=='y')|(user1=='n'):
+                 opts.append(user1)
+                 break
+            else:
+                print(f' {cr[1]}Incorrect Input. Please enter (y/n).{cr[0]}{nl}')
+                continue
 
-    inc=[cr,ts,lvn,pad,lst]   
+        while(True): # user defines if the launch vehicle had a fairing
+            user2=input(f' Did {lvn[1]} need a fairing? (y/n)     : ')
+            if(user2=='y')|(user2=='n'):
+                opts.append(user2)
+                break
+            else:
+                print(f' {cr[1]}Incorrect Input. Please enter (y/n).{cr[0]}{nl}')
+                continue
+        
+        while(True): # user defines if the launch vehicle released a payload
+            user3=input(f' Did {lvn[1]} release a payload? (y/n)  : ')
+            if(user3=='y')|(user3=='n'):
+                opts.append(user3)
+                break
+            else:
+                print(f' {cr[1]}Incorrect Input. Please enter (y/n).{cr[0]}{nl}')
+                continue
+
+    while(True): # user defines if the Throttle Up was called
+        user4=input(f' Did {lvn[1]} Throttle Up? (y/n)        : ')
+        if(user4=='y')|(user4=='n'):
+            opts.append(user4)
+            break
+        else:
+            print(f' {cr[1]}Incorrect Input. Please enter (y/n).{cr[0]}{nl}')
+            continue
+    
+    inc=[cr,ts,lvn,pad,opts]   
     # inc[0,1,2,3,4]                user output list
     # inc[0]    cr[0,1,2,3,4,5]     colour list
     # inc[1]    ts[0,1,2,3,4,5]     test list
@@ -179,7 +176,9 @@ def user(): # [0,1,2,3,4,5]     [2,3,4]     user input
     #  lv[3]    n[0,1]              lv name part list
     # inc[3]    pd[0,1,2]           pad name list
     #  pd[2]    p[0,1]              pad name part list
-    # inc[4]    us[0,1,2]           user questions
+    # inc[4]    us[0,1,2,3]         user questions
+
+    sl(t3)
 
     return(inc)
 
@@ -224,17 +223,25 @@ def processing():
 
     print(' Processing Data...')
 
+    lst=[]
+    for i in inc[4]:
+        if(i=='y'):
+            opt=True
+            lst.append(opt)
+        else:
+            opt=False
+            lst.append(opt)
+
     names=['v_roc','m_roc','a_roc']
     a=0
     b=0
-    c=0
     for i in col:
         if(i==col[5])or(i==col[6])or(i==col[7]):
             series=df[col[a]]
             roc=series.diff()
             title=names[b]
             roc_iso=pd.DataFrame({title:roc})
-            roc_iso.replace([man[0],man[1],(-man[1])],0,inplace=True)
+            roc_iso.replace([np.NaN,np.inf,(-np.inf)],0,inplace=True)
             df=df.join(roc_iso,how='right')
             if(i==col[6]):
                 m_roc=[]
@@ -247,7 +254,6 @@ def processing():
             df[col[0]]=df[col[0]].round(3)
         a+=1
     col=df.columns.values
-    sl(t4)
 
     for r in col:
         if(r==col[19]):
@@ -261,15 +267,18 @@ def processing():
     #     schema=(sch[1])
 
     print(f'{cr[3]} Complete!{cr[0]}{nl}')
-    sl(t2)
+
+    sl(t4)
+
     important_values=[mass_roc_mode]
-    return(col,df,inc,schema,important_values)    
+
+    return(col,df,inc,schema,important_values,lst)    
 
 def flight_telemetry():
 
     # data from telemetry csv to postgres database
     
-    (col,df,inc,sch,iv)=processing()
+    (col,df,inc,sch,iv,lst)=processing()
     cr=inc[0]
     test=inc[1]
     
@@ -284,65 +293,67 @@ def flight_telemetry():
     print(f' Creating Table: {cr[4]} [ksp.{schema_table}]{cr[0]}')
     sl(t2)
     
-    while(True):                                                                            # telemetry table creation
+    while(True):
         try:
-            TBL=(f'''CREATE TABLE {schema_table} () INHERITS ({temp[1]});
-                     ALTER TABLE {schema_table} ADD PRIMARY KEY (time);''')                                         # create table command
-            cur.execute(TBL)                                                                # execute sql command
-            break                                                                           # break while loop
-        except(errors.lookup(errorcodes.DUPLICATE_TABLE)):                                  # if table already exists
+            TBL=(f'''CREATE TABLE {schema_table} () INHERITS ({'templates.telemetry'});
+                     ALTER TABLE {schema_table} ADD PRIMARY KEY (time);''') 
+            cur.execute(TBL)
+            break
+        except(errors.lookup(errorcodes.DUPLICATE_TABLE)):
             while(True):                                        
-                ovrw=input(f'{cr[1]} Table Exists. Overwrite? (y/n): {cr[0]} ')  # ask user if they wish to overwrite
-                ovry=(ovrw=='y')
-                ovrx=(ovrw=='n')
-                if(ovry)or(ovrx):
-                    if(ovry):                                                               # user wishes to proceed
+                ovrw=input(f'{cr[1]} Table Exists. Overwrite? (y/n): {cr[0]} ')
+                if(ovrw=='y')or(ovrw=='n'):
+                    if(ovrw=='y'):
                         print(' Overwriting...')
                         sl(t2)
                         DUP=(f'''ROLLBACK;
-                                DROP TABLE {schema_table};''')                            # drop table command
-                        cur.execute(DUP)                                                    # execute sql command
-                        break                                                               # break while loop
+                                DROP TABLE {schema_table};''')
+                        cur.execute(DUP)
+                        break
                     else:
-                        print(f'{nl}{cr[1]} Process Canceled... {cr[0]}{nl}')     # user does not want to overwritte
-                        exit()                                                              # exit program
+                        print(f'{nl}{cr[1]} Process Canceled... {cr[0]}{nl}')
+                        exit()
                 else:
-                    print(' Incorrect Input...')                                            # neither yes or no
-                    continue                                                                # continue while loop
+                    print(' Incorrect Input...') 
+                    continue
             continue
-    sl(t4)                                                                        # if table exists, delete and loop            
+    sl(t3)
     print(f'{cr[3]} Complete!{cr[0]}{nl}')
-    sl(t5)
+    sl(t2)
+
     print(' Populating Table... ')
-    for (i,r) in df.iterrows():                                     # iterate through rows
-        a=tuple(r.values)                                           # turn each row into a tuple
-        SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')          # sql command
+    for (i,r) in df.iterrows():
+        a=tuple(r.values)
+        SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')
         cur.execute(SQL, (a,)) 
     sl(t5)
-
     print(f'{cr[3]} Complete!{cr[0]}{nl}')
 
     ps=[cur,conn]
+    
+    # cur.close()
+    # conn.commit()
+    # conn.close()
+    # exit ()
 
-    return(col,df,inc,sch,ps,iv)
+    return(col,df,inc,sch,ps,iv,lst)
 
 def flight_info():
 
     # overall flight information
 
-    (col,df,inc,sch,ps,iv)=flight_telemetry()
+    (col,df,inc,sch,ps,iv,us)=flight_telemetry()
     cr=inc[0]
     test=inc[1]
     cur=ps[0]
 
-
     a=0
-    val=[]                                      # for loop for general flight information
-    lst2=[0,2,3,5,6,17]                         # columns where either the final or inital value are flight information
-    while a<len(col):                           # while loop to iterate through columns
-        for i in lst2:                          # for loop to iterate through flight information list
+    val=[]
+    lst2=[0,2,3,5,6,17]
+    while a<len(col):
+        for i in lst2:
             if(a==i):
-                if(a==6):                       # if while loop iteration equals flight info list value
+                if(a==6):
                     val.append(df[col[i]].iloc[1]) 
                     val.append(df[col[i]].iloc[-1])
                 else:
@@ -358,22 +369,23 @@ def flight_info():
            'lv_mass'    :[val[4]],
            'pay_mass'   :[val[5]],
            'delta_v'    :[val[6]],
-           'bst_q'      :[inc[4][0]],
-           'pay_q'      :[inc[4][1]],
-           'fst_q'      :[inc[4][2]]}
+           'bst_q'      :[us[0]],
+           'pay_q'      :[us[1]],
+           'fst_q'      :[us[2]],
+           'tup_q'      :[us[3]]}
 
     fl=pd.DataFrame(fl_in)
     fol=fl.columns.values
 
     data=[fl[fol[0]][0],fl[fol[1]][0],fl[fol[2]][0],fl[fol[3]][0],
           fl[fol[4]][0],fl[fol[5]][0],fl[fol[6]][0],fl[fol[7]][0],
-          fl[fol[8]][0],inc[4][0],inc[4][1],inc[4][2]]
+          fl[fol[8]][0],us[0],us[1],us[2],us[3]]
     
     put=tuple(data)
           
-    schema_table=('.'.join((sch,test[4])))         #set schema name for query)
+    schema_table=('.'.join((sch,test[4])))
 
-    time=pd.to_timedelta(data[2],'sec')                     # translating raw time (seconds) into clock time for readability
+    time=pd.to_timedelta(data[2],'sec')
     mm=time.components.minutes
     ss=time.components.seconds
     ms=time.components.milliseconds 
@@ -413,17 +425,15 @@ def flight_info():
 
     raw.append(data)
 
-    return(col,df,fol,fl,inc,sch,ps,iv)
+    return(col,df,fol,fl,inc,sch,ps,iv,us)
 
 def flight_data():
 
-    (col,df,fol,fl,inc,sch,ps,iv)=flight_info()
+    (col,df,fol,fl,inc,sch,ps,iv,user)=flight_info()
     cur=ps[0]
     conn=ps[1]
     cr=inc[0]
     test=inc[1]
-    nan=man[0]
-    user=inc[4]
 
     col3=col[3]
     alt=df[col3]
@@ -445,14 +455,13 @@ def flight_data():
     col20=col[20]
     a_roc=df[col20]
 
-    # 012   | [0]   1    2    3
-    # yyy   |       beco,meco,seco
-    # nyy   |       meco,seco
-
+    # 1    2    3
+    # meco,seco,oibeco
+    
     vr=[]
-    vrr=[] # vrr[0]=lift off,   #vrr[1]=beco/meco,   vrr[2]=meco/seco   #vrr[3]=seco/na
+    vrr=[]
     for i1 in v_roc:
-        if(i1<0.01):
+        if(i1<0):
             vr.append(i1)
         elif vr:
             vrr.append(vr[0])
@@ -481,7 +490,7 @@ def flight_data():
             mr.append(i2)    
 
     mile_pos=[           (0,2)      ,(0,3)  ,(0,5)  ,(0,6) ,(0,17) ,(0,0) ,(0)]
-    mile_nan=[None       ,man[0]    ,man[0] ,man[0] ,man[0],man[0] ,man[0],-1   ,man[0]]
+    mile_nan=[None       ,np.NaN    ,np.NaN ,np.NaN ,np.NaN,np.NaN ,np.NaN,-1   ,np.NaN]
 
     mile=['maxq','thup','beco','meco','fair','krml','seco','oib','oibeco','pay','eof']
 
@@ -489,35 +498,35 @@ def flight_data():
 
     print(f' Creating Table: {cr[4]} [ksp.{schema_table}] {cr[0]}')
     sl(t2)
-    while(True):                                                                            # telemetry table creation
+    while(True):
         try:
-            TBL=(f'''CREATE TABLE {schema_table} () INHERITS ({temp[0]});
-                     ALTER TABLE {schema_table} ADD PRIMARY KEY (milestone);''')                                        # create table command
-            cur.execute(TBL)                                                                # execute sql command
-            break                                                                           # break while loop
-        except(errors.lookup(errorcodes.DUPLICATE_TABLE)):                                  # if table already exists
+            TBL=(f'''CREATE TABLE {schema_table} () INHERITS ({'templates.data'});
+                     ALTER TABLE {schema_table} ADD PRIMARY KEY (milestone);''')
+            cur.execute(TBL)
+            break
+        except(errors.lookup(errorcodes.DUPLICATE_TABLE)):
             while(True):                                        
-                ovrw=input(f'{cr[1]} Table Exists. Overwrite? (y/n): {cr[0]} ')  # ask user if they wish to overwrite
+                ovrw=input(f'{cr[1]} Table Exists. Overwrite? (y/n): {cr[0]} ')
                 if(ovrw=='y')or(ovrw=='n'):
-                    if(ovrw=='y'):                                                               # user wishes to proceed
+                    if(ovrw=='y'):
                         print(' Overwriting...')
                         sl(t2)
                         DUP=(f'''ROLLBACK;
-                                 DROP TABLE {schema_table};''')                            # drop table command
-                        cur.execute(DUP)                                                    # execute sql command
-                        break                                                               # break while loop
+                                 DROP TABLE {schema_table};''')
+                        cur.execute(DUP)
+                        break
                     else:
-                        print(f'{nl}{cr[1]} Process Canceled... {cr[0]}{nl}')     # user does not want to overwritte
-                        exit()                                                              # exit program
+                        print(f'{nl}{cr[1]} Process Canceled... {cr[0]}{nl}')
+                        exit()
                 else:
-                    print(' Incorrect Input...')                                            # neither yes or no
-                    continue                                                                # continue while loop
+                    print(' Incorrect Input...')
+                    continue
             continue
-    sl(t4)                                                                        # if table exists, delete and loop            
+    sl(t2)            
     print(f'{cr[3]} Complete!{cr[0]}{nl}')
-    sl(t3)
+    sl(t4)
     print(f' {cr[1]}Flight Milestones{cr[0]}')
-    sl(t1)
+    sl(t2)
     print(f' Writing to Table {cr[4]}[ksp.{schema_table}]{cr[0]}{nl}')
 
     def maxq():     # 0
@@ -536,7 +545,6 @@ def flight_data():
         rwt=val.iloc[mile_pos[5]]
         row=val.index[mile_pos[6]]
 
-        # clock time generation
         td=pd.to_timedelta(rwt,'sec')
         mm=int(td.components.minutes)
         ss=int(td.components.seconds)
@@ -575,15 +583,13 @@ def flight_data():
         return(data)
     
     def thup():     # 1
-        
-        time=df[col[0]]
-
-        lst=[]
-        for i in time:
-            if(i>35)&(i<50):
-                lst.append(i)
-        try:                
-            thup=max(df[time.isin(lst)][col20])
+       
+        if(user[3]==True):
+            lst=[]
+            for i in tim:
+                if(i>35)&(i<50):
+                    lst.append(i)                
+            thup=max(df[tim.isin(lst)][col20])
             
             val=df[a_roc==thup]
 
@@ -596,14 +602,13 @@ def flight_data():
             rwt=val.iloc[mile_pos[5]]
             row=val.index[mile_pos[6]]
 
-            # clock time generation
             td=pd.to_timedelta(rwt,'sec')
             mm=int(td.components.minutes)
             ss=int(td.components.seconds)
             ms=round(int(td.components.milliseconds), 3)
             time=('{:02d}:{:02d}.{:03d}'.format(mm,ss,ms))
 
-            data=tuple([mist,alt,rng,spd,mas,dtv,rwt,int(row),nan])
+            data=tuple([mist,alt,rng,spd,mas,dtv,rwt,int(row),np.NaN])
 
             print(f'{cr[1]} Throttle Up (THUP){cr[0]}')
             sl(t1)
@@ -623,7 +628,7 @@ def flight_data():
             sl(t1)
             print(f'{cr[5]} - Table Row:               {data[7]}{cr[0]}{nl}')
             
-        except(KeyError):
+        else:
             mile_nan[0]=mile[1]
             data=tuple(mile_nan)
             
@@ -651,16 +656,15 @@ def flight_data():
             rwt=val.iloc[mile_pos[5]]
             row=val.index[mile_pos[6]]
 
-            # clock time generation
             td=pd.to_timedelta(rwt,'sec')
             mm=int(td.components.minutes)
             ss=int(td.components.seconds)
             ms=round(int(td.components.milliseconds), 3)
             time=('{:02d}:{:02d}.{:03d}'.format(mm,ss,ms))
 
-            data=tuple([mist,alt,rng,spd,mas,dtv,rwt,int(row),nan])
+            data=tuple([mist,alt,rng,spd,mas,dtv,rwt,int(row),np.NaN])
 
-            print(f'{cr[1]}Booster Engine Cut Off (MECO){cr[0]}')
+            print(f'{cr[1]} Booster Engine Cut Off (BECO){cr[0]}')
             sl(t1)
             print(f'{cr[4]} - Altitude:                {(data[1]/km):.3f} km{cr[0]}')
             sl(t1)
@@ -708,14 +712,13 @@ def flight_data():
         rwt=val.iloc[mile_pos[5]]
         row=val.index[mile_pos[6]]
 
-        # clock time generation
         td=pd.to_timedelta(rwt,'sec')
         mm=int(td.components.minutes)
         ss=int(td.components.seconds)
         ms=round(int(td.components.milliseconds), 3)
         time=('{:02d}:{:02d}.{:03d}'.format(mm,ss,ms))
 
-        data=tuple([mist,alt,rng,spd,mas,dtv,rwt,int(row),nan])
+        data=tuple([mist,alt,rng,spd,mas,dtv,rwt,int(row),np.NaN])
 
         print(f'{cr[1]}Main Engine Cut Off (MECO){cr[0]}')
         sl(t1)
@@ -746,10 +749,6 @@ def flight_data():
     
     def fair():     # 4
 
-        # no fairinf on test file 1
-        # no fairing on test file 2
-        # fairing on test file 3
-
         if(user[1]==True):
             if(user[0]==True):
                 x=2
@@ -766,14 +765,13 @@ def flight_data():
             rwt=val.iloc[mile_pos[5]]
             row=val.index[mile_pos[6]]
 
-            # clock time generation
             td=pd.to_timedelta(rwt,'sec')
             mm=int(td.components.minutes)
             ss=int(td.components.seconds)
             ms=round(int(td.components.milliseconds), 3)
             time=('{:02d}:{:02d}.{:03d}'.format(mm,ss,ms))
 
-            data=tuple([mist,alt,rng,spd,mas,dtv,rwt,int(row),nan])
+            data=tuple([mist,alt,rng,spd,mas,dtv,rwt,int(row),np.NaN])
 
             print(f'{cr[1]} Fairing Separation (FAIR){cr[0]}')
             sl(t1)
@@ -794,7 +792,7 @@ def flight_data():
             print(f'{cr[5]} - Table Row:               {data[7]}{cr[0]}{nl}')
                     
         else:
-            mile_nan[0]=mile[3]
+            mile_nan[0]=mile[4]
             data=tuple(mile_nan)
             
         SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')
@@ -808,10 +806,7 @@ def flight_data():
 
     def seco():     # 5
         
-        if(user[0]==True):
-            x=3
-        else:
-            x=2
+        x=2
 
         val=df[v_roc==vrr[x]]
 
@@ -824,14 +819,13 @@ def flight_data():
         rwt=val.iloc[mile_pos[5]]
         row=val.index[mile_pos[6]]
 
-        # clock time generation
         td=pd.to_timedelta(rwt,'sec')
         mm=int(td.components.minutes)
         ss=int(td.components.seconds)
         ms=round(int(td.components.milliseconds), 3)
         time=('{:02d}:{:02d}.{:03d}'.format(mm,ss,ms))
 
-        data=tuple([mist,alt,rng,spd,mas,dtv,rwt,int(row),nan])
+        data=tuple([mist,alt,rng,spd,mas,dtv,rwt,int(row),np.NaN])
 
         print(f'{cr[1]} Second Engine Cutt Off (SECO){cr[0]}')
         sl(t1)
@@ -866,18 +860,10 @@ def flight_data():
         
         x=0
         a=war[5][7]
-        b=(rate[-1]-(rate[-1]*0.25))
-
-        lst=[]
-        for i in v_roc:
-            c=rate[x]
-            if(1<i!=0)&(a<c<b):
-                lst.append(i)
-            x+=1
+        # b=(rate[-1]-(rate[-1]*0.25))
         
-        point=df[v_roc.isin(lst)][col18]
-        value=point.iloc[0]
-        val=df[v_roc==value]
+        right=v_roc.iloc[a:][v_roc.iloc[a:].gt(0)].tolist()
+        val=df[v_roc==right[0]]
         
         mist=mile[7]
         alt=val.iloc[mile_pos[0]]    
@@ -888,14 +874,13 @@ def flight_data():
         rwt=val.iloc[mile_pos[5]]
         row=val.index[mile_pos[6]]
 
-        # clock time generation
         td=pd.to_timedelta(rwt,'sec')
         mm=int(td.components.minutes)
         ss=int(td.components.seconds)
         ms=round(int(td.components.milliseconds), 3)
         time=('{:02d}:{:02d}.{:03d}'.format(mm,ss,ms))
 
-        data=tuple([mist,alt,rng,spd,mas,dtv,rwt,int(row),nan])
+        data=tuple([mist,alt,rng,spd,mas,dtv,rwt,int(row),np.NaN])
 
         print(f'{cr[1]} Orbital Insertion Burn (OIB){cr[0]}')
         sl(t1)
@@ -946,14 +931,13 @@ def flight_data():
         rwt=val.iloc[mile_pos[5]]
         row=val.index[mile_pos[6]]
 
-        # clock time generation
         td=pd.to_timedelta(rwt,'sec')
         mm=int(td.components.minutes)
         ss=int(td.components.seconds)
         ms=round(int(td.components.milliseconds), 3)
         time=('{:02d}:{:02d}.{:03d}'.format(mm,ss,ms))
 
-        data=tuple([mist,alt,rng,spd,mas,dtv,rwt,int(row),nan])
+        data=tuple([mist,alt,rng,spd,mas,dtv,rwt,int(row),np.NaN])
 
         print(f'{cr[1]} Orbital Insertion Burn Engine Cut Off (OIBECO){cr[0]}')
         sl(t1)
@@ -984,8 +968,6 @@ def flight_data():
 
     def pay():      # 8
 
-         # no payload release on test file
-        
         a=user[0]==False
         b=user[1]==False
         c=user[2]==True
@@ -996,44 +978,46 @@ def flight_data():
                 x=2
             if(a)&(b):
                 x=1
-        
-        val=df[m_roc==mr[x]]
 
-        mist=mile[9]
-        alt=val.iloc[mile_pos[0]]    
-        rng=val.iloc[mile_pos[1]]
-        spd=val.iloc[mile_pos[2]]
-        mas=val.iloc[mile_pos[3]]
-        dtv=val.iloc[mile_pos[4]]
-        rwt=val.iloc[mile_pos[5]]
-        row=val.index[mile_pos[6]]
+            val=df[m_roc==mr[x]]
 
-        # clock time generation
-        td=pd.to_timedelta(rwt,'sec')
-        mm=int(td.components.minutes)
-        ss=int(td.components.seconds)
-        ms=round(int(td.components.milliseconds), 3)
-        time=('{:02d}:{:02d}.{:03d}'.format(mm,ss,ms))
+            mist=mile[9]
+            alt=val.iloc[mile_pos[0]]    
+            rng=val.iloc[mile_pos[1]]
+            spd=val.iloc[mile_pos[2]]
+            mas=val.iloc[mile_pos[3]]
+            dtv=val.iloc[mile_pos[4]]
+            rwt=val.iloc[mile_pos[5]]
+            row=val.index[mile_pos[6]]
 
-        data=tuple([mist,alt,rng,spd,mas,dtv,rwt,int(row),nan])
+            td=pd.to_timedelta(rwt,'sec')
+            mm=int(td.components.minutes)
+            ss=int(td.components.seconds)
+            ms=round(int(td.components.milliseconds), 3)
+            time=('{:02d}:{:02d}.{:03d}'.format(mm,ss,ms))
 
-        print(f'{cr[1]} Payload Release (PAY){cr[0]}')
-        sl(t1)
-        print(f'{cr[4]} - Altitude:                {(data[1]/km):.3f} km{cr[0]}')
-        sl(t1)
-        print(       f' - Downrange:               {(data[2]/km):.3f} km')
-        sl(t1)
-        print(       f' - Velocity:                {data[3]:.3f} m/s')
-        sl(t1)
-        print(       f' - Vehicle Mass:            {data[4]:.3f} t')
-        sl(t1)
-        print(       f' - Delta V Used:            {data[5]:.3f} m/s')
-        sl(t1)
-        print(f'{cr[3]} - Raw Time:                {data[6]:.3f} s {cr[0]}')
-        sl(t1)
-        print(       f' - Flight Time:             {time}')
-        sl(t1)
-        print(f'{cr[5]} - Table Row:               {data[7]}{cr[0]}{nl}')
+            data=tuple([mist,alt,rng,spd,mas,dtv,rwt,int(row),np.NaN])
+
+            print(f'{cr[1]} Payload Release (PAY){cr[0]}')
+            sl(t1)
+            print(f'{cr[4]} - Altitude:                {(data[1]/km):.3f} km{cr[0]}')
+            sl(t1)
+            print(       f' - Downrange:               {(data[2]/km):.3f} km')
+            sl(t1)
+            print(       f' - Velocity:                {data[3]:.3f} m/s')
+            sl(t1)
+            print(       f' - Vehicle Mass:            {data[4]:.3f} t')
+            sl(t1)
+            print(       f' - Delta V Used:            {data[5]:.3f} m/s')
+            sl(t1)
+            print(f'{cr[3]} - Raw Time:                {data[6]:.3f} s {cr[0]}')
+            sl(t1)
+            print(       f' - Flight Time:             {time}')
+            sl(t1)
+            print(f'{cr[5]} - Table Row:               {data[7]}{cr[0]}{nl}')
+        else:
+            mile_nan[0]=mile[9]
+            data=tuple(mile_nan)
 
         SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')
         cur.execute(SQL,(data,))
@@ -1047,7 +1031,6 @@ def flight_data():
     def fin():      # 9
 
         # end of file
-        tim=df[col0]
 
         val=df[tim==tim.iloc[-1]]
 
@@ -1060,14 +1043,13 @@ def flight_data():
         rwt=val.iloc[mile_pos[5]]
         row=val.index[mile_pos[6]]
 
-        # clock time generation
         td=pd.to_timedelta(rwt,'sec')
         mm=int(td.components.minutes)
         ss=int(td.components.seconds)
         ms=round(int(td.components.milliseconds), 3)
         time=('{:02d}:{:02d}.{:03d}'.format(mm,ss,ms))
 
-        data=tuple([mist,alt,rng,spd,mas,dtv,rwt,int(row),nan])
+        data=tuple([mist,alt,rng,spd,mas,dtv,rwt,int(row),np.NaN])
 
         print(f'{cr[1]} End of Flight (EoF){cr[0]}')
         sl(t1)
@@ -1096,17 +1078,19 @@ def flight_data():
 
         return(data)        
 
-    maxq()      #
-    thup()      #
-    beco()      #
-    meco()      #
-    fair()      #
-    seco()      #
-    oib()       #
-    oibeco()    #
-    pay()       #
-    fin()       #
-
+    def order():
+        maxq()      #
+        thup()      #
+        beco()      #
+        meco()      #
+        fair()      #
+        seco()      #
+        oib()       #
+        oibeco()    #
+        pay()       #
+        fin()       #
+    
+    order()
     print(f'{cr[3]} Complete!{cr[0]}{nl}')
 
     return(raw,cur,conn)
@@ -1122,6 +1106,6 @@ def run():
 
 if __name__=="__main__":
     run()
-    print(input(' Process complete, press any key to continue...'))
+    print(input(f' Process Complete!{nl} Press any Key to Continue...{nl}'))
     sys('cls')
     exit()
