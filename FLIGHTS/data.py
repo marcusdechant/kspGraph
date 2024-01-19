@@ -202,8 +202,8 @@ def source(): # csv source
     #col=df.columns.values
     
     # name[0-17]
-    name=['time','stages','alt_sea_lvl','downrange','surf_vel','orbt_vel','mass','acclr',
-          'q','aoa','aos','aod','alt_true','pitch','gls','dls','sls','delta_v']
+    name=['time','stages','alt_sea_lvl','downrange','surf_velo','orbt_velo','mass','acclr',
+          'q','aoa','aos','aod','alt_true','pitch','grav_loss','drag_loss','ster_loss','delta_v']
 
     a=0
     b=len(col)
@@ -296,7 +296,8 @@ def flight_telemetry():
     while(True):
         try:
             TBL=(f'''CREATE TABLE {schema_table} () INHERITS ({'templates.telemetry'});
-                     ALTER TABLE {schema_table} ADD PRIMARY KEY (time);''') 
+                     ALTER TABLE {schema_table} ADD COLUMN 
+                     id SERIAL NOT NULL PRIMARY KEY UNIQUE;''') 
             cur.execute(TBL)
             break
         except(errors.lookup(errorcodes.DUPLICATE_TABLE)):
@@ -322,6 +323,7 @@ def flight_telemetry():
     sl(t2)
 
     print(' Populating Table... ')
+    id_=0
     for (i,r) in df.iterrows():
         a=tuple(r.values)
         SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')
@@ -360,38 +362,18 @@ def flight_info():
                     val.append(df[col[i]].iloc[-1] )
         a+=1
 
-    fl_in={'name'       :[inc[2][2]],
-           'pad'        :[inc[3][1]],
-           'time'       :[val[0]],
-           'altitude'   :[val[1]],
-           'range'      :[val[2]],
-           'speed'      :[val[3]],
-           'lv_mass'    :[val[4]],
-           'pay_mass'   :[val[5]],
-           'delta_v'    :[val[6]],
-           'bst_q'      :[us[0]],
-           'pay_q'      :[us[1]],
-           'fst_q'      :[us[2]],
-           'tup_q'      :[us[3]]}
+    col_str=['name','pad','time','altitude','drange','speed','lv_mass','pay_mass','delta_v','bst_q','pay_q','fst_q','tup_q']
 
-    fl=pd.DataFrame(fl_in)
-    fol=fl.columns.values
+    data=[inc[2][1],inc[3][0],val[0],val[1],val[1],val[3],val[4],val[5],val[6],us[0],us[1],us[2],us[3]]
 
-    data=[fl[fol[0]][0],fl[fol[1]][0],fl[fol[2]][0],fl[fol[3]][0],
-          fl[fol[4]][0],fl[fol[5]][0],fl[fol[6]][0],fl[fol[7]][0],
-          fl[fol[8]][0],us[0],us[1],us[2],us[3]]
-    
-    put=tuple(data)
-          
     schema_table=('.'.join((sch,test[4])))
-
+    
     time=pd.to_timedelta(data[2],'sec')
     mm=time.components.minutes
     ss=time.components.seconds
     ms=time.components.milliseconds 
     time=(f'{mm:02d}:{ss:02d}.{ms:03d}')
 
-    
     print(f' Flight Information')
     sl(t2)
     print(f'{cr[1]}  - Flight Name:              {inc[2][1]} {cr[0]}')
@@ -416,6 +398,10 @@ def flight_info():
     sl(t2)
     print(f' Writing to Table: {cr[4]}[ksp.{schema_table}]{cr[0]}')
 
+    data[0]=inc[2][2]
+    data[1]=inc[3][1]
+    put=tuple(data)
+
     SQL=(f'''INSERT INTO {schema_table} VALUES %s ON CONFLICT DO NOTHING;''')
     cur.execute(SQL,(put,))
 
@@ -425,11 +411,11 @@ def flight_info():
 
     raw.append(data)
 
-    return(col,df,fol,fl,inc,sch,ps,iv,us)
+    return(col,df,inc,sch,ps,iv,us)
 
 def flight_data():
 
-    (col,df,fol,fl,inc,sch,ps,iv,user)=flight_info()
+    (col,df,inc,sch,ps,iv,user)=flight_info()
     cur=ps[0]
     conn=ps[1]
     cr=inc[0]
@@ -501,7 +487,8 @@ def flight_data():
     while(True):
         try:
             TBL=(f'''CREATE TABLE {schema_table} () INHERITS ({'templates.data'});
-                     ALTER TABLE {schema_table} ADD PRIMARY KEY (milestone);''')
+                     ALTER TABLE {schema_table } ADD COLUMN 
+                     id SERIAL NOT NULL PRIMARY KEY UNIQUE; ''')
             cur.execute(TBL)
             break
         except(errors.lookup(errorcodes.DUPLICATE_TABLE)):
