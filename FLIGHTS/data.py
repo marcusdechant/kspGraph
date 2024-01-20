@@ -418,10 +418,7 @@ def flight_data():
     col3=col[3]
     alt=df[col3]
 
-    karman=[]
-    for i0 in alt:
-        if(69500<i0<70500):
-            karman.append(i0)
+    karman=70000   
 
     col0=col[0]
     tim=df[col0]
@@ -448,6 +445,12 @@ def flight_data():
             vr=[]
     if vr:
         vrr.append(vr[0])
+
+    filt=df[(v_roc<0)&(alt>karman)]
+    vrd=filt['v_roc'].tolist()
+
+    print(vrr)
+    print(vrd[0])
 
     # 012 |   0    1    2   3
     # yyy | beco,meco,fair,pay
