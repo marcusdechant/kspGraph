@@ -416,7 +416,7 @@ def flight_data():
     # test=inc[1]
 
     col3=col[3]
-    alt=df[col3]
+    alti=df[col3]
 
     karman=70000   
 
@@ -431,26 +431,6 @@ def flight_data():
 
     col20=col[20]
     a_roc=df[col20]
-
-    # 1    2    3
-    # meco,seco,oibeco
-    
-    vr=[]
-    vrr=[]
-    for i1 in v_roc:
-        if(i1<0):
-            vr.append(i1)
-        elif vr:
-            vrr.append(vr[0])
-            vr=[]
-    if vr:
-        vrr.append(vr[0])
-
-    filt=df[(v_roc<0)&(alt>karman)]
-    vrd=filt['v_roc'].tolist()
-
-    print(vrr)
-    print(vrd[0])
 
     # 012 |   0    1    2   3
     # yyy | beco,meco,fair,pay
@@ -573,7 +553,7 @@ def flight_data():
         if(user[3]==True):
             lst=[]
             for i in tim:
-                if(i>35)&(i<50):
+                if(i>35)&(i<55):
                     lst.append(i)                
             thup=max(df[tim.isin(lst)][col20])
             
@@ -792,12 +772,11 @@ def flight_data():
 
     def seco():     # 5
         
-        if(user[0]==True):
-            x=2
-        else:
-            x=1
 
-        val=df[v_roc==vrr[x]]
+        filt=df[(v_roc<0)&(alti>karman)]
+        vrd=filt['v_roc'].tolist()
+        
+        val=df[v_roc==vrd[0]]
 
         mist=mile[6]
         alt=val.iloc[mile_pos[0]]    
