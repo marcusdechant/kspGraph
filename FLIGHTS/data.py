@@ -82,7 +82,7 @@ def user(): # [0,1,2,3,4,5]     [2,3,4]     user input
 
     def flight_name(): # [2]   [0,1,2,3]   [3][0,1]
 
-        file_raw=ts[0] # test params
+        # file_raw=ts[0] # test params
 
         # ksp launch vehicle class based naming convention 
         # (class_mission_number)
@@ -90,7 +90,7 @@ def user(): # [0,1,2,3,4,5]     [2,3,4]     user input
         # where mission refers to either the individual mission name ex. HM_CORE, HM_CST, Cache Alpha. Some refer to the payload while some are sequential.
         # where number is when payload named missions required more than one launch (ex. HM_Eng_4)
         
-        # file_raw=input(f'{nl} Flight Name?                                     : ')
+        file_raw=input(f'{nl} Flight Name?                          : ')
         part=file_raw.split("_")                        # part[0,1]
         if(str.lower(part[0])=='cache'):                                                               
             part[0]='callisto'
@@ -104,14 +104,14 @@ def user(): # [0,1,2,3,4,5]     [2,3,4]     user input
 
     def launch_pad(): # [3]   [0,1,2]      [2][0,1]
 
-        lpad=ts[1] # test params
+        # lpad=ts[1] # test params
 
         # ready pads
         # KSC Pad 1 - equatorial - Kerbal Space Center
         # DES Pad 2 - (-6) South - Dessert Airforce Base
         # WLS Pad 3 - 45 North - Woomerang Launch Site
         
-        # lpad=input(' Launch Pad?                                      : ')
+        lpad=input(' Launch Pad?                           : ')
         part=lpad.split(' ')                            # part[0,1,2]
         display_name=lpad
         store_name=(''.join((part[0],part[1],part[2])))
@@ -133,7 +133,7 @@ def user(): # [0,1,2,3,4,5]     [2,3,4]     user input
     
     else:       
         while(True): # user defines if the launch vehicle had boosters
-            user1=input(f'{nl} Did {lvn[1]} have boosters? (y/n)      : ')
+            user1=input(f'{nl} Did {lvn[1]} have boosters? (y/n)     : ')
             if(user1=='y')|(user1=='n'):
                  opts.append(user1)
                  break
@@ -142,7 +142,7 @@ def user(): # [0,1,2,3,4,5]     [2,3,4]     user input
                 continue
 
         while(True): # user defines if the launch vehicle had a fairing
-            user2=input(f' Did {lvn[1]} need a fairing? (y/n)     : ')
+            user2=input(f' Did {lvn[1]} need a fairing? (y/n)    : ')
             if(user2=='y')|(user2=='n'):
                 opts.append(user2)
                 break
@@ -151,7 +151,7 @@ def user(): # [0,1,2,3,4,5]     [2,3,4]     user input
                 continue
         
         while(True): # user defines if the launch vehicle released a payload
-            user3=input(f' Did {lvn[1]} release a payload? (y/n)  : ')
+            user3=input(f' Did {lvn[1]} release a payload? (y/n) : ')
             if(user3=='y')|(user3=='n'):
                 opts.append(user3)
                 break
@@ -160,7 +160,7 @@ def user(): # [0,1,2,3,4,5]     [2,3,4]     user input
                 continue
 
     while(True): # user defines if the Throttle Up was called
-        user4=input(f' Did {lvn[1]} Throttle Up? (y/n)        : ')
+        user4=input(f' Did {lvn[1]} Throttle Up? (y/n)       : ')
         if(user4=='y')|(user4=='n'):
             opts.append(user4)
             break
@@ -183,10 +183,6 @@ def user(): # [0,1,2,3,4,5]     [2,3,4]     user input
     return(inc)
 
 def source(): # csv source
-
-    # complete
-    # formatted and edited
-    # waiting on comments
 
     inc=user()
     cr=inc[0]
@@ -218,19 +214,19 @@ def processing():
 
     (col,df,inc)=source()
     cr=inc[0]
-    test=inc[1]
-    schema=test[2]
+    # test=inc[1]
+    # schema=test[2]
 
     print(' Processing Data...')
 
-    lst=[]
+    user_input=[]
     for i in inc[4]:
         if(i=='y'):
             opt=True
-            lst.append(opt)
+            user_input.append(opt)
         else:
             opt=False
-            lst.append(opt)
+            user_input.append(opt)
 
     names=['v_roc','m_roc','a_roc']
     a=0
@@ -259,28 +255,25 @@ def processing():
         if(r==col[19]):
             df[col[19]]=df[col[19]].abs()
 
-    # determine schmea from file naming conventions
-    sch=['callisto','hailmary']
-    # if(sch=='Callisto' or sch=='Cache'): 
-    #     schema=(sch[0])
-    # if(sch=='HM' or sch=='Hailmary'):
-    #     schema=(sch[1])
-
     print(f'{cr[3]} Complete!{cr[0]}{nl}')
 
     sl(t4)
 
     important_values=[mass_roc_mode]
 
-    return(col,df,inc,schema,important_values,lst)    
+    return(col,df,inc,important_values,user_input)    
 
 def flight_telemetry():
 
     # data from telemetry csv to postgres database
     
-    (col,df,inc,sch,iv,lst)=processing()
+    (col,df,inc,iv,user_input)=processing()
     cr=inc[0]
-    test=inc[1]
+    sch=inc[2][3][0]
+    tbl=inc[2][3][1]
+    # test=inc[1]
+    tele='telemetry'
+    table=('_'.join((tbl,tele)))
     
     print(f' Connecting to PostgreSQL Database: {cr[4]}[ksp]{cr[0]}')
     conn=psql()
@@ -289,7 +282,7 @@ def flight_telemetry():
     print(f'{cr[3]} Connected!{cr[0]}{nl}')
     sl(t2)
     
-    schema_table=('.'.join((sch,test[3]))) # set schema name for query
+    schema_table=('.'.join((sch,table))) # set schema name for query
     print(f' Creating Table: {cr[4]} [ksp.{schema_table}]{cr[0]}')
     sl(t2)
     
@@ -323,7 +316,6 @@ def flight_telemetry():
     sl(t2)
 
     print(' Populating Table... ')
-    id_=0
     for (i,r) in df.iterrows():
         a=tuple(r.values)
         SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')
@@ -338,15 +330,15 @@ def flight_telemetry():
     # conn.close()
     # exit ()
 
-    return(col,df,inc,sch,ps,iv,lst)
+    return(col,df,inc,sch,tbl,ps,iv,user_input)
 
 def flight_info():
 
     # overall flight information
 
-    (col,df,inc,sch,ps,iv,us)=flight_telemetry()
+    (col,df,inc,sch,tbl,ps,iv,us)=flight_telemetry()
     cr=inc[0]
-    test=inc[1]
+    # test=inc[1]
     cur=ps[0]
 
     a=0
@@ -366,7 +358,9 @@ def flight_info():
 
     data=[inc[2][1],inc[3][0],val[0],val[1],val[1],val[3],val[4],val[5],val[6],us[0],us[1],us[2],us[3]]
 
-    schema_table=('.'.join((sch,test[4])))
+    
+    table='flights'
+    schema_table=('.'.join((sch,table)))
     
     time=pd.to_timedelta(data[2],'sec')
     mm=time.components.minutes
@@ -411,15 +405,15 @@ def flight_info():
 
     raw.append(data)
 
-    return(col,df,inc,sch,ps,iv,us)
+    return(col,df,inc,sch,tbl,ps,iv,us)
 
 def flight_data():
 
-    (col,df,inc,sch,ps,iv,user)=flight_info()
+    (col,df,inc,sch,tbl,ps,iv,user)=flight_info()
     cur=ps[0]
     conn=ps[1]
     cr=inc[0]
-    test=inc[1]
+    # test=inc[1]
 
     col3=col[3]
     alt=df[col3]
@@ -480,7 +474,9 @@ def flight_data():
 
     mile=['maxq','thup','beco','meco','fair','krml','seco','oib','oibeco','pay','eof']
 
-    schema_table=(f'.'.join((sch,test[5])))
+    info='data'
+    table=('_'.join((tbl,info)))
+    schema_table=(f'.'.join((sch,table)))
 
     print(f' Creating Table: {cr[4]} [ksp.{schema_table}] {cr[0]}')
     sl(t2)
@@ -618,7 +614,6 @@ def flight_data():
         else:
             mile_nan[0]=mile[1]
             data=tuple(mile_nan)
-            print(data)
             
         SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')
         cur.execute(SQL,(data,))
@@ -847,9 +842,6 @@ def flight_data():
 
     def oib():      # 6
 
-        rate=v_roc.index
-        
-        x=0
         a=war[5][7]
         # b=(rate[-1]-(rate[-1]*0.25))
         
