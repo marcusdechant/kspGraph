@@ -31,8 +31,8 @@ war=[]
 
 def test_params():  # [0,1,2,3,4,5]     [0]
 
-    ver=1
-    file='Cache_Alpha'      # test[0]
+    ver=3
+    file='HM_CAT'      # test[0]
     pad='KSC PAD 1'         # test[1]
     schema='test'           # test[2]
     tele=(f'ttest{ver}')    # test[3]
@@ -618,6 +618,7 @@ def flight_data():
         else:
             mile_nan[0]=mile[1]
             data=tuple(mile_nan)
+            print(data)
             
         SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')
         cur.execute(SQL,(data,))
@@ -793,7 +794,10 @@ def flight_data():
 
     def seco():     # 5
         
-        x=2
+        if(user[0]==True):
+            x=2
+        else:
+            x=1
 
         val=df[v_roc==vrr[x]]
 
