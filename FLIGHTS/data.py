@@ -415,6 +415,9 @@ def flight_data():
     cr=inc[0]
     # test=inc[1]
 
+    col7=col[7]
+    acc=df[col7]
+
     col3=col[3]
     alti=df[col3]
 
@@ -772,46 +775,53 @@ def flight_data():
 
     def seco():     # 5
         
+        filt=df[(v_roc<0)&(alti>karman)&(a_roc>(-0.1))]
+        num=filt.index[0]
+        if(num>war[3][7]):
+            vrd=filt['v_roc'].tolist()
+            
+            val=df[v_roc==vrd[0]]
 
-        filt=df[(v_roc<0)&(alti>karman)]
-        vrd=filt['v_roc'].tolist()
+            mist=mile[6]
+            alt=val.iloc[mile_pos[0]]    
+            rng=val.iloc[mile_pos[1]]
+            spd=val.iloc[mile_pos[2]]
+            mas=val.iloc[mile_pos[3]]
+            dtv=val.iloc[mile_pos[4]]
+            rwt=val.iloc[mile_pos[5]]
+            row=val.index[mile_pos[6]]
+
+            # if(war[3][7]>row):
+
+            td=pd.to_timedelta(rwt,'sec')
+            mm=int(td.components.minutes)
+            ss=int(td.components.seconds)
+            ms=round(int(td.components.milliseconds), 3)
+            time=('{:02d}:{:02d}.{:03d}'.format(mm,ss,ms))
+
+            data=tuple([mist,alt,rng,spd,mas,dtv,rwt,int(row),np.NaN])
+
+            print(f'{cr[1]} Second Engine Cutt Off (SECO){cr[0]}')
+            sl(t1)
+            print(f'{cr[4]} - Altitude:                {(data[1]/km):.3f} km{cr[0]}')
+            sl(t1)
+            print(       f' - Downrange:               {(data[2]/km):.3f} km')
+            sl(t1)
+            print(       f' - Velocity:                {data[3]:.3f} m/s')
+            sl(t1)
+            print(       f' - Vehicle Mass:            {data[4]:.3f} t')
+            sl(t1)
+            print(       f' - Delta V Used:            {data[5]:.3f} m/s')
+            sl(t1)
+            print(f'{cr[3]} - Raw Time:                {data[6]:.3f} s {cr[0]}')
+            sl(t1)
+            print(       f' - Flight Time:             {time}')
+            sl(t1)
+            print(f'{cr[5]} - Table Row:               {data[7]}{cr[0]}{nl}')
         
-        val=df[v_roc==vrd[0]]
-
-        mist=mile[6]
-        alt=val.iloc[mile_pos[0]]    
-        rng=val.iloc[mile_pos[1]]
-        spd=val.iloc[mile_pos[2]]
-        mas=val.iloc[mile_pos[3]]
-        dtv=val.iloc[mile_pos[4]]
-        rwt=val.iloc[mile_pos[5]]
-        row=val.index[mile_pos[6]]
-
-        td=pd.to_timedelta(rwt,'sec')
-        mm=int(td.components.minutes)
-        ss=int(td.components.seconds)
-        ms=round(int(td.components.milliseconds), 3)
-        time=('{:02d}:{:02d}.{:03d}'.format(mm,ss,ms))
-
-        data=tuple([mist,alt,rng,spd,mas,dtv,rwt,int(row),np.NaN])
-
-        print(f'{cr[1]} Second Engine Cutt Off (SECO){cr[0]}')
-        sl(t1)
-        print(f'{cr[4]} - Altitude:                {(data[1]/km):.3f} km{cr[0]}')
-        sl(t1)
-        print(       f' - Downrange:               {(data[2]/km):.3f} km')
-        sl(t1)
-        print(       f' - Velocity:                {data[3]:.3f} m/s')
-        sl(t1)
-        print(       f' - Vehicle Mass:            {data[4]:.3f} t')
-        sl(t1)
-        print(       f' - Delta V Used:            {data[5]:.3f} m/s')
-        sl(t1)
-        print(f'{cr[3]} - Raw Time:                {data[6]:.3f} s {cr[0]}')
-        sl(t1)
-        print(       f' - Flight Time:             {time}')
-        sl(t1)
-        print(f'{cr[5]} - Table Row:               {data[7]}{cr[0]}{nl}')
+        else:
+            mile_nan[0]=mile[6]
+            data=tuple(mile_nan)
 
         SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')
         cur.execute(SQL,(data,))
@@ -825,6 +835,8 @@ def flight_data():
     def oib():      # 6
 
         a=war[5][7]
+        if(a==(-1)):
+            a=1000
         # b=(rate[-1]-(rate[-1]*0.25))
         
         right=v_roc.iloc[a:][v_roc.iloc[a:].gt(0)].tolist()
