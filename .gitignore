@@ -1,0 +1,14 @@
+# Byte-compiled / dll / opt files
+__pycache__/
+*.py[cod]
+
+# VS Code Workspace
+ksp.code-workspace
+
+# postgres connection
+psqlConn.py
+psqlGraphs/
+
+# old files
+oldFiles/
+FLIGHTS.old/

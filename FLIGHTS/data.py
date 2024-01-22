@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 from ColorOut import CO
-from doNotGit.psqlConn import psql
+from psqlConn import psql
 from time import sleep as sl
 from psycopg2 import errors, errorcodes
 from statistics import mode
