@@ -265,6 +265,7 @@ def flight_telemetry():
     
     (col,df,inc,iv,user_input)=processing()
     cr=inc[0]
+    lvn=inc[2][3]
     sch=inc[2][3][0]
     tbl=inc[2][3][1]
     # test=inc[1]
