@@ -7,8 +7,13 @@ ksp.code-workspace
 
 # postgres connection
 psqlConn.py
-psqlGraphs/
+psInfo/
+
+# game screenshots
+screenshots/
 
 # old files
-oldFiles/
-FLIGHTS.old/
+old/
+
+
+
