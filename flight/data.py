@@ -46,7 +46,7 @@ war=[]
     
 #     return(test)
 
-def color(): # [0,1,2,3,4,5]    [0]     text colours
+def color(): # inc[0]       text colour options
 
     # normal
     nor=        '\033[0;37m'        # cr[0]
@@ -62,7 +62,7 @@ def color(): # [0,1,2,3,4,5]    [0]     text colours
 
     return(color)
 
-def start(): # Starting dialogue
+def start(): #              Start dialogue
     
     cr=color()
 
@@ -77,7 +77,7 @@ def start(): # Starting dialogue
 
     return(cr)
 
-def user(): # [0,1,2,3,4,5]     [2,3,4]     user input 
+def user(): # inc[1,2,3]    user input/flight info 
 
     (cr)=start()
     
@@ -137,43 +137,23 @@ def user(): # [0,1,2,3,4,5]     [2,3,4]     user input
     pad=launch_pad()
     
     opts=[]
-           
-    while(True): # user defines if the launch vehicle had boosters
-        user1=input(f'{nl} Did {lvn[1]} have boosters? (y/n)     : ')
-        if(user1=='y')|(user1=='n'):
-                opts.append(user1)
+    
+    lst=[f'{nl} Did {lvn[1]} have boosters? (y/n)     : ',
+             f' Did {lvn[1]} need a fairing? (y/n)    : ',
+             f' Did {lvn[1]} release a payload? (y/n) : ',
+             f' Did {lvn[1]} Throttle Up? (y/n)       : ']
+    a=0
+    while(a<len(lst)):
+        while(True):
+            user=input(lst[a])
+            if(user=='y')|(user=='n'):
+                opts.append(user)
                 break
-        else:
-            print(f' {cr[1]}Incorrect Input. Please enter (y/n).{cr[0]}{nl}')
-            continue
+            else:
+                print(f' {cr[1]}Incorrect Input. Please enter (y/n).{cr[0]}{nl}')
+                continue
+        a+=1
 
-    while(True): # user defines if the launch vehicle had a fairing
-        user2=input(f' Did {lvn[1]} need a fairing? (y/n)    : ')
-        if(user2=='y')|(user2=='n'):
-            opts.append(user2)
-            break
-        else:
-            print(f' {cr[1]}Incorrect Input. Please enter (y/n).{cr[0]}{nl}')
-            continue
-    
-    while(True): # user defines if the launch vehicle released a payload
-        user3=input(f' Did {lvn[1]} release a payload? (y/n) : ')
-        if(user3=='y')|(user3=='n'):
-            opts.append(user3)
-            break
-        else:
-            print(f' {cr[1]}Incorrect Input. Please enter (y/n).{cr[0]}{nl}')
-            continue
-
-    while(True): # user defines if the Throttle Up was called
-        user4=input(f' Did {lvn[1]} Throttle Up? (y/n)       : ')
-        if(user4=='y')|(user4=='n'):
-            opts.append(user4)
-            break
-        else:
-            print(f' {cr[1]}Incorrect Input. Please enter (y/n).{cr[0]}{nl}')
-            continue
-    
     inc=[cr,lvn,pad,opts]
     
     # cr    :   [0][0,1,2,3,4,5]
@@ -181,88 +161,78 @@ def user(): # [0,1,2,3,4,5]     [2,3,4]     user input
     # pad   :   [2][0,1,2][0,1,2]
     # opts  :   [3][0,1,2,3]
     
-    sl(t3)
+    sl(t4)
     
     return(inc)
 
-def source(): # csv source
+def source(): #             csv source
 
     inc=user()
     cr=inc[0]
-    lvn=inc[1]
-    file=lvn[0]
-    folder=lvn[3][0]
+    file=inc[1][0]
+    folder=inc[1][3][0]
 
-    print(f'{nl} Reading {lvn[1]} Telemetry CSV file. {cr[4]}[{folder}\{file}.csv]{cr[0]}')
+    print(f'{nl} Reading {inc[1][1]} Telemetry CSV file. {cr[4]}[{folder}\{file}.csv]{cr[0]}')
     df=pd.read_csv(r'{}\{}.csv'.format(folder,file))
 
     col=df.columns.values
 
-    #col=df.columns.values
-    
-    # name[0-17]
+    # column renaming
     name=['time','stages','alt_sea_lvl','downrange','surf_velo','orbt_velo','mass','acclr',
           'q','aoa','aos','aod','alt_true','pitch','grav_loss','drag_loss','ster_loss','delta_v']
-
     a=0
     b=len(col)
     while(a<b):
         col[a]=name[a]
         a+=1
+    
     sl(t4)
 
     return(col,df,inc)
 
-def processing():
-
+def processing(): #         data processing
+    
     (col,df,inc)=source()
     cr=inc[0]
-    lvn=inc[1]
-    
 
     print(' Processing Data...')
 
-    user_input=[]
-    for i1 in inc[3]:
+    # ui to bool
+    ui=[]
+    for i1 in inc[3]: 
         if(i1=='y'):
             opt=True
-            user_input.append(opt)
+            ui.append(opt)
         else:
             opt=False
-            user_input.append(opt)
-            
+            ui.append(opt)
+    
+    # rate of change columns
     names=['v_roc','m_roc','a_roc']
     a=0
     b=0
-    for i in col:
-        if(i==col[5])or(i==col[6])or(i==col[7]):
-            series=df[col[a]]
-            roc=series.diff()
+    for i2 in col: 
+        if(i2==col[5])|(i2==col[6])|(i2==col[7]):
+            roc=df[col[a]].diff()
             title=names[b]
             roc_iso=pd.DataFrame({title:roc})
             roc_iso.replace([np.NaN,np.inf,(-np.inf)],0,inplace=True)
             df=df.join(roc_iso,how='right')
-            if(i==col[6]):
-                m_roc=[]
-                for ii in roc:
-                    if ii!=0:
-                        m_roc.append(round(ii,6))
-                mass_roc_mode=mode(m_roc)
             b+=1
-        if(i==col[0]):
-            df[col[0]]=df[col[0]].round(3)
         a+=1
     col=df.columns.values
 
-    for r in col:
-        if(r==col[19]):
+    # df column adjustments
+    for i3 in col: 
+        if(i3==col[0]):
+            df[col[0]]=df[col[0]].round(3)
+        if(i3==col[19]):
             df[col[19]]=df[col[19]].abs()
 
     print(f'{cr[3]} Complete!{cr[0]}{nl}')
-
     sl(t4)
 
-    return(col,df,inc,user_input)    
+    return(col,df,inc,ui)    
 
 def flight_telemetry():
 
@@ -297,7 +267,7 @@ def flight_telemetry():
         except(errors.lookup(errorcodes.DUPLICATE_TABLE)):
             while(True):                                        
                 ovrw=input(f'{cr[1]} Table Exists. Overwrite? (y/n): {cr[0]} ')
-                if(ovrw=='y')or(ovrw=='n'):
+                if(ovrw=='y')|(ovrw=='n'):
                     if(ovrw=='y'):
                         print(' Overwriting...')
                         sl(t2)
@@ -340,6 +310,9 @@ def flight_info():
     
     sch=inc[1][3][0]
     
+    table='flights'
+    schema_table=('.'.join((sch,table)))
+    
     a=0
     val=[]
     lst2=[0,2,3,5,6,17]
@@ -355,9 +328,6 @@ def flight_info():
 
     data=[inc[1][1],inc[2][0],val[0],val[1],val[1],val[3],val[4],val[5],val[6],us[0],us[1],us[2],us[3]]
    
-    table='flights'
-    schema_table=('.'.join((sch,table)))
-    
     time=pd.to_timedelta(data[2],'sec')
     mm=time.components.minutes
     ss=time.components.seconds
@@ -474,7 +444,7 @@ def flight_data():
         except(errors.lookup(errorcodes.DUPLICATE_TABLE)):
             while(True):                                        
                 ovrw=input(f'{cr[1]} Table Exists. Overwrite? (y/n): {cr[0]} ')
-                if(ovrw=='y')or(ovrw=='n'):
+                if(ovrw=='y')|(ovrw=='n'):
                     if(ovrw=='y'):
                         print(' Overwriting...')
                         sl(t2)
@@ -1078,7 +1048,7 @@ def run():
     # print(war)
     # print(raw)
 
-if __name__=="__main__":
+if(__name__=="__main__"):
     run()
     print(input(f' Process Complete!{nl} Press any Key to Continue...{nl}'))
     sys('cls')

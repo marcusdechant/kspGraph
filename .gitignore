@@ -5,6 +5,12 @@ __pycache__/
 # VS Code Workspace
 ksp.code-workspace
 
+# raw csv
+_raw/
+
+# links
+*.lnk
+
 # postgres connection
 psqlConn.py
 psInfo/
@@ -14,6 +20,11 @@ screenshots/
 
 # old files
 old/
+
+# faulty launches csv files
+*.fault.*
+
+
 
 
 
