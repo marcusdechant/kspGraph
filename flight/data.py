@@ -31,22 +31,22 @@ t5=(t4*3)
 raw=[]
 war=[]
 
-def test_params():  # [0,1,2,3,4,5]     [0]
+# def test_params():  # [0,1,2,3,4,5]
 
-    ver=3
-    file='HM_CAT'      # test[0]
-    pad='KSC PAD 1'         # test[1]
-    schema='test'           # test[2]
-    tele=(f'ttest{ver}')    # test[3]
-    flight=(f'ftest')       # test[4]
-    data=(f'dtest{ver}')    # test[5]
+#     ver=3
+#     file='HM_CAT'           # test[0]
+#     pad='KSC PAD 1'         # test[1]
+#     schema='test'           # test[2]
+#     tele=(f'ttest{ver}')    # test[3]
+#     flight=(f'ftest')       # test[4]
+#     data=(f'dtest{ver}')    # test[5]
     
-    # ts[0,1,2,3,4,5]
-    test=[file,pad,schema,tele,flight,data]
+#     # ts[0,1,2,3,4,5]
+#     test=[file,pad,schema,tele,flight,data]
     
-    return(test)
+#     return(test)
 
-def color(): # [0,1,2,3,4,5]    [1]     text colours
+def color(): # [0,1,2,3,4,5]    [0]     text colours
 
     # normal
     nor=        '\033[0;37m'        # cr[0]
@@ -65,7 +65,6 @@ def color(): # [0,1,2,3,4,5]    [1]     text colours
 def start(): # Starting dialogue
     
     cr=color()
-    ts=test_params()
 
     sys('cls')
 
@@ -76,55 +75,66 @@ def start(): # Starting dialogue
     print(     ' By: Marcus Dechant')
     sl(t2)
 
-    return(cr,ts)
+    return(cr)
 
 def user(): # [0,1,2,3,4,5]     [2,3,4]     user input 
 
-    (cr,ts)=start()
-
-    def flight_name(): # [2]   [0,1,2,3]   [3][0,1]
-
-        # file_raw=ts[0] # test params
-
+    (cr)=start()
+    
+    def flight_name(): # lv [0,1,2,3][frp]  flight name
+        
         # ksp launch vehicle class based naming convention 
         # (class_mission_number)
         # where class is the family of launch vehicle, or in cases when multiple missions are grouped together as in the case of orbital construction (ex. hailmary, KOSS).
         # where mission refers to either the individual mission name ex. HM_CORE, HM_CST, Cache Alpha. Some refer to the payload while some are sequential.
         # where number is when payload named missions required more than one launch (ex. HM_Eng_4)
         
-        file_raw=input(f'{nl} Flight Name?                          : ')
-        part=file_raw.split("_")                        # part[0,1]
-        if(str.lower(part[0])=='cache'):                                                               
-            part[0]='callisto'
-            part[0]=part[0].capitalize()
-        display_name=(' '.join((part[0],part[1])))
-        store_name=(''.join((part[0],part[1])))
+        fr=input(f'{nl} Flight Name?                          : ')
+        frp=fr.split('_')   # frp [0,1] OR [0,1,2]
+        if(len(frp)==3): # numbered conventions
+            alpha=(frp[1],frp[2])
+            bravo=(frp[0],frp[1],frp[2])
+            tbl=('_'.join(alpha))
+            fdis=(' '.join(bravo))
+            fstr=(''.join(bravo))
+        else:
+            tbl=frp[1]
+            char=(frp[0],frp[1])
+            fdis=(' '.join(char))
+            fstr=(''.join(char))
         
-        lvn=[file_raw,display_name,store_name,part]     # lvn[0,1,2,3]  [3][0,1]       
+        lv=[fr,fdis,fstr,frp,tbl] # lv [0,1,2,3,4][frp]
+        
+        # fr    : class_name_number
+        # fdis  : class name number
+        # fstr  : classnamenumber
+        # frp   : [class,name,number]
+        # tbl   : name_number
+                        
+        return(lv)
 
-        return(lvn)
-
-    def launch_pad(): # [3]   [0,1,2]      [2][0,1]
-
-        # lpad=ts[1] # test params
+    def launch_pad(): # pd [0,1,2] [lpp]    pad name
 
         # ready pads
         # KSC Pad 1 - equatorial - Kerbal Space Center
         # DES Pad 2 - (-6) South - Dessert Airforce Base
         # WLS Pad 3 - 45 North - Woomerang Launch Site
         
-        lpad=input(' Launch Pad?                           : ')
-        part=lpad.split(' ')                            # part[0,1,2]
-        display_name=lpad
-        store_name=(''.join((part[0],part[1],part[2])))
-
-        pad=[display_name,store_name,part]              # pad[0,1,2]  [2][0,1,2]
-
-        return(pad)
+        lp=input(' Launch Pad?                           : ')
+        lpp=lp.split(' ')   # lpp [0,1,2]
+        alpha=(lpp[0],lpp[1],lpp[2])
+        lstr=(''.join(alpha))
+        
+        pd=[lp,lstr,lpp]    # pd [0,1,2][lpp]
+        
+        # lp    : complex_pad_number
+        # lstr  : complexpadnumber
+        # lpp   : [complex,pad,number]
+        
+        return(pd)
     
     lvn=flight_name()
     pad=launch_pad()
-    lv_class=lvn[3][0]
     
     opts=[]
            
@@ -164,30 +174,27 @@ def user(): # [0,1,2,3,4,5]     [2,3,4]     user input
             print(f' {cr[1]}Incorrect Input. Please enter (y/n).{cr[0]}{nl}')
             continue
     
-    inc=[cr,ts,lvn,pad,opts]   
-    # inc[0,1,2,3,4]                user output list
-    # inc[0]    cr[0,1,2,3,4,5]     colour list
-    # inc[1]    ts[0,1,2,3,4,5]     test list
-    # inc[2]    lv[0,1,2,3]         lv name list
-    #  lv[3]    n[0,1]              lv name part list
-    # inc[3]    pd[0,1,2]           pad name list
-    #  pd[2]    p[0,1]              pad name part list
-    # inc[4]    us[0,1,2,3]         user questions
-
+    inc=[cr,lvn,pad,opts]
+    
+    # cr    :   [0][0,1,2,3,4,5]
+    # lvn   :   [1][0,1,2,3,4][0,1,2]
+    # pad   :   [2][0,1,2][0,1,2]
+    # opts  :   [3][0,1,2,3]
+    
     sl(t3)
-
+    
     return(inc)
 
 def source(): # csv source
 
     inc=user()
     cr=inc[0]
-    lv=inc[2]
-    code=lv[0]
-    clss=lv[3][0]
+    lvn=inc[1]
+    file=lvn[0]
+    folder=lvn[3][0]
 
-    print(f'{nl} Reading {lv[1]} Telemetry CSV file. {cr[4]}[{clss}\{code}.csv]{cr[0]}')
-    df=pd.read_csv(r'{}\{}.csv'.format(clss,code))
+    print(f'{nl} Reading {lvn[1]} Telemetry CSV file. {cr[4]}[{folder}\{file}.csv]{cr[0]}')
+    df=pd.read_csv(r'{}\{}.csv'.format(folder,file))
 
     col=df.columns.values
 
@@ -210,20 +217,20 @@ def processing():
 
     (col,df,inc)=source()
     cr=inc[0]
-    # test=inc[1]
-    # schema=test[2]
+    lvn=inc[1]
+    
 
     print(' Processing Data...')
 
     user_input=[]
-    for i in inc[4]:
-        if(i=='y'):
+    for i1 in inc[3]:
+        if(i1=='y'):
             opt=True
             user_input.append(opt)
         else:
             opt=False
             user_input.append(opt)
-
+            
     names=['v_roc','m_roc','a_roc']
     a=0
     b=0
@@ -255,23 +262,17 @@ def processing():
 
     sl(t4)
 
-    important_values=[mass_roc_mode]
-
-    return(col,df,inc,important_values,user_input)    
+    return(col,df,inc,user_input)    
 
 def flight_telemetry():
 
     # data from telemetry csv to postgres database
     
-    (col,df,inc,iv,user_input)=processing()
+    (col,df,inc,ui)=processing()
     cr=inc[0]
-    lvn=inc[2][3]
-    sch=inc[2][3][0]
-    tbl=inc[2][3][1]
-    # test=inc[1]
-    label='telemetry'
-    table=('_'.join((tbl,label)))
-    
+    tbl=inc[1][4]
+    sch=inc[1][3][0]
+        
     print(f' Connecting to PostgreSQL Database: {cr[4]}[ksp]{cr[0]}')
     conn=psql()
     cur=conn.cursor()
@@ -279,11 +280,14 @@ def flight_telemetry():
     print(f'{cr[3]} Connected!{cr[0]}{nl}')
     sl(t2)
     
-    schema_table=('.'.join((sch,table))) # set schema name for query
+    label='telemetry'
+    table=('_'.join((tbl,label)))
+    schema_table=('.'.join((sch,table)))
+    
     print(f' Creating Table: {cr[4]} [ksp.{schema_table}]{cr[0]}')
     sl(t2)
     
-    while(True):
+    while(True): # telemetry table creation
         try:
             TBL=(f'''CREATE TABLE {schema_table} () INHERITS ({'templates.telemetry'});
                      ALTER TABLE {schema_table} ADD COLUMN 
@@ -308,36 +312,34 @@ def flight_telemetry():
                     print(' Incorrect Input...') 
                     continue
             continue
+    
     sl(t3)
     print(f'{cr[3]} Complete!{cr[0]}{nl}')
     sl(t2)
-
     print(' Populating Table... ')
-    for (i,r) in df.iterrows():
+    
+    for (i,r) in df.iterrows(): # data insertion
         a=tuple(r.values)
         SQL=(f'''INSERT INTO {schema_table} VALUES %s;''')
         cur.execute(SQL, (a,)) 
+    
     sl(t5)
     print(f'{cr[3]} Complete!{cr[0]}{nl}')
-
+    
     ps=[cur,conn]
     
-    # cur.close()
-    # conn.commit()
-    # conn.close()
-    # exit ()
-
-    return(col,df,inc,sch,tbl,ps,iv,user_input)
+    return(col,df,inc,ps,ui)
 
 def flight_info():
 
     # overall flight information
 
-    (col,df,inc,sch,tbl,ps,iv,us)=flight_telemetry()
+    (col,df,inc,ps,us)=flight_telemetry()
     cr=inc[0]
-    # test=inc[1]
     cur=ps[0]
-
+    
+    sch=inc[1][3][0]
+    
     a=0
     val=[]
     lst2=[0,2,3,5,6,17]
@@ -351,11 +353,8 @@ def flight_info():
                     val.append(df[col[i]].iloc[-1] )
         a+=1
 
-    col_str=['name','pad','time','altitude','drange','speed','lv_mass','pay_mass','delta_v','bst_q','pay_q','fst_q','tup_q']
-
-    data=[inc[2][1],inc[3][0],val[0],val[1],val[1],val[3],val[4],val[5],val[6],us[0],us[1],us[2],us[3]]
-
-    
+    data=[inc[1][1],inc[2][0],val[0],val[1],val[1],val[3],val[4],val[5],val[6],us[0],us[1],us[2],us[3]]
+   
     table='flights'
     schema_table=('.'.join((sch,table)))
     
@@ -367,9 +366,9 @@ def flight_info():
 
     print(f' Flight Information')
     sl(t2)
-    print(f'{cr[1]}  - Flight Name:              {inc[2][1]} {cr[0]}')
+    print(f'{cr[1]}  - Flight Name:              {inc[1][1]} {cr[0]}')
     sl(t1)
-    print(       f'  - Launch Complex/Pad:       {inc[3][0]}')
+    print(       f'  - Launch Complex/Pad:       {inc[2][0]}')
     sl(t1)
     print(f'{cr[3]}  - Flight Time:              {time} {cr[0]}')
     sl(t1)
@@ -389,8 +388,8 @@ def flight_info():
     sl(t2)
     print(f' Writing to Table: {cr[4]}[ksp.{schema_table}]{cr[0]}')
 
-    data[0]=inc[2][2]
-    data[1]=inc[3][1]
+    data[0]=inc[1][2]
+    data[1]=inc[2][1]
     put=tuple(data)
 
     SQL=(f'''INSERT INTO {schema_table} VALUES %s ON CONFLICT DO NOTHING;''')
@@ -402,23 +401,23 @@ def flight_info():
 
     raw.append(data)
 
-    return(col,df,inc,sch,tbl,ps,iv,us)
+    return(col,df,inc,ps,us)
 
 def flight_data():
 
-    (col,df,inc,sch,tbl,ps,iv,user)=flight_info()
+    (col,df,inc,ps,user)=flight_info()
     cur=ps[0]
     conn=ps[1]
     cr=inc[0]
-    # test=inc[1]
+    
+    tbl=inc[1][4]
+    sch=inc[1][3][0]
 
     col7=col[7]
     acc=df[col7]
 
     col3=col[3]
     alti=df[col3]
-
-    karman=70000   
 
     col0=col[0]
     tim=df[col0]
@@ -431,6 +430,8 @@ def flight_data():
 
     col20=col[20]
     a_roc=df[col20]
+    
+    karman=70000
 
     # 012 |   0    1    2   3
     # yyy | beco,meco,fair,pay
@@ -834,8 +835,7 @@ def flight_data():
         a=war[5][7]
         if(a==(-1)):
             a=1000
-        # b=(rate[-1]-(rate[-1]*0.25))
-        
+                
         right=v_roc.iloc[a:][v_roc.iloc[a:].gt(0)].tolist()
         val=df[v_roc==right[0]]
         
