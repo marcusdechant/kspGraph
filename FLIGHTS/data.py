@@ -11,7 +11,9 @@ from os import system as sys
 CO()
 
 # data processing for ksp flight telemetry
-# by: marcus dechant
+# by: marcus dechant (marucs kerman)
+
+# KSC launch vehicle design (LVD) has requested, stage fuel analysis functions
 
 # global text 
 nl='\n'
@@ -125,39 +127,33 @@ def user(): # [0,1,2,3,4,5]     [2,3,4]     user input
     lv_class=lvn[3][0]
     
     opts=[]
-    if(lv_class.lower=='callisto'):
-        print(f'{nl} Loading Callisto Class Launch Vehicle preset factors')
-        opts.append('y')    # Due to its use case, Callisto class launch vehicle 
-        opts.append('n')    # are known as a static class meaning they retain the
-        opts.append('n')    # same launch factors.
-    
-    else:       
-        while(True): # user defines if the launch vehicle had boosters
-            user1=input(f'{nl} Did {lvn[1]} have boosters? (y/n)     : ')
-            if(user1=='y')|(user1=='n'):
-                 opts.append(user1)
-                 break
-            else:
-                print(f' {cr[1]}Incorrect Input. Please enter (y/n).{cr[0]}{nl}')
-                continue
+           
+    while(True): # user defines if the launch vehicle had boosters
+        user1=input(f'{nl} Did {lvn[1]} have boosters? (y/n)     : ')
+        if(user1=='y')|(user1=='n'):
+                opts.append(user1)
+                break
+        else:
+            print(f' {cr[1]}Incorrect Input. Please enter (y/n).{cr[0]}{nl}')
+            continue
 
-        while(True): # user defines if the launch vehicle had a fairing
-            user2=input(f' Did {lvn[1]} need a fairing? (y/n)    : ')
-            if(user2=='y')|(user2=='n'):
-                opts.append(user2)
-                break
-            else:
-                print(f' {cr[1]}Incorrect Input. Please enter (y/n).{cr[0]}{nl}')
-                continue
-        
-        while(True): # user defines if the launch vehicle released a payload
-            user3=input(f' Did {lvn[1]} release a payload? (y/n) : ')
-            if(user3=='y')|(user3=='n'):
-                opts.append(user3)
-                break
-            else:
-                print(f' {cr[1]}Incorrect Input. Please enter (y/n).{cr[0]}{nl}')
-                continue
+    while(True): # user defines if the launch vehicle had a fairing
+        user2=input(f' Did {lvn[1]} need a fairing? (y/n)    : ')
+        if(user2=='y')|(user2=='n'):
+            opts.append(user2)
+            break
+        else:
+            print(f' {cr[1]}Incorrect Input. Please enter (y/n).{cr[0]}{nl}')
+            continue
+    
+    while(True): # user defines if the launch vehicle released a payload
+        user3=input(f' Did {lvn[1]} release a payload? (y/n) : ')
+        if(user3=='y')|(user3=='n'):
+            opts.append(user3)
+            break
+        else:
+            print(f' {cr[1]}Incorrect Input. Please enter (y/n).{cr[0]}{nl}')
+            continue
 
     while(True): # user defines if the Throttle Up was called
         user4=input(f' Did {lvn[1]} Throttle Up? (y/n)       : ')
@@ -272,8 +268,8 @@ def flight_telemetry():
     sch=inc[2][3][0]
     tbl=inc[2][3][1]
     # test=inc[1]
-    tele='telemetry'
-    table=('_'.join((tbl,tele)))
+    label='telemetry'
+    table=('_'.join((tbl,label)))
     
     print(f' Connecting to PostgreSQL Database: {cr[4]}[ksp]{cr[0]}')
     conn=psql()
@@ -460,8 +456,8 @@ def flight_data():
 
     mile=['maxq','thup','beco','meco','fair','krml','seco','oib','oibeco','pay','eof']
 
-    info='data'
-    table=('_'.join((tbl,info)))
+    label='data'
+    table=('_'.join((tbl,label)))
     schema_table=(f'.'.join((sch,table)))
 
     print(f' Creating Table: {cr[4]} [ksp.{schema_table}] {cr[0]}')
@@ -556,7 +552,7 @@ def flight_data():
         if(user[3]==True):
             lst=[]
             for i in tim:
-                if(i>35)&(i<55):
+                if(i>35)&(i<60):
                     lst.append(i)                
             thup=max(df[tim.isin(lst)][col20])
             
