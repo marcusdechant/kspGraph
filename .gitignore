@@ -3,7 +3,7 @@ __pycache__/
 *.py[cod]
 
 # VS Code Workspace
-ksp.code-workspace
+*.code-workspace
 
 # raw csv
 _raw/
@@ -23,6 +23,13 @@ old/
 
 # faulty launches csv files
 *.fault.*
+
+# LV folders
+Aerolab3/
+Callisto/
+DPI/
+HM/
+URSA/
 
 
 
